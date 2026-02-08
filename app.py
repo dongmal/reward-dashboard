@@ -373,15 +373,23 @@ def quick_date_picker(data_min, data_max, prefix, default_mode="이번 달"):
                  today.replace(day=1) - timedelta(days=1)),
     }
 
+    def clamp(d):
+        """날짜를 data_min ~ data_max 범위로 클램핑"""
+        return max(data_min, min(d, data_max))
+
     # date_input이 사용할 실제 session_state key
     key_from = f"{prefix}_di_from"
     key_to = f"{prefix}_di_to"
 
-    # 기본값 초기화 (최초 1회) — date_input key에 직접 설정
+    # 기본값 초기화 (최초 1회)
     if key_from not in st.session_state:
         ds, de = presets.get(default_mode, (today, today))
-        st.session_state[key_from] = max(ds, data_min)
-        st.session_state[key_to] = min(de, data_max)
+        st.session_state[key_from] = clamp(ds)
+        st.session_state[key_to] = clamp(de)
+    else:
+        # 이미 값이 있어도 범위 밖이면 보정
+        st.session_state[key_from] = clamp(st.session_state[key_from])
+        st.session_state[key_to] = clamp(st.session_state[key_to])
 
     # 1행: 버튼 6개 (밀착, 매우 작게)
     btn_cols = st.columns([1, 1, 1, 1, 1, 1, 8], gap="small")
@@ -394,8 +402,8 @@ def quick_date_picker(data_min, data_max, prefix, default_mode="이번 달"):
 
     # 버튼 클릭 시 date_input의 session_state key에 직접 기록 후 rerun
     if clicked_preset:
-        st.session_state[key_from] = max(clicked_preset[0], data_min)
-        st.session_state[key_to] = min(clicked_preset[1], data_max)
+        st.session_state[key_from] = clamp(clicked_preset[0])
+        st.session_state[key_to] = clamp(clicked_preset[1])
         st.rerun()
 
     # 2행: 날짜 입력 (더 크게)
