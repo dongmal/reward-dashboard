@@ -17,77 +17,72 @@ st.set_page_config(
 )
 
 # ============================================================
-# CSS — Light / Dark 모두 대응, 파스텔톤
+# CSS — Power BI 스타일 + Light/Dark 대응
 # ============================================================
 st.markdown("""
 <style>
-/* ── 메트릭 카드 ── */
+/* ── 전역 ── */
+.main .block-container { padding-top: 1rem; max-width: 1440px; }
+
+/* ── 메트릭 카드 — Power BI 스타일 ── */
 div[data-testid="stMetric"] {
-    background: var(--metric-bg, rgba(0,0,0,0.03));
-    border: 1px solid var(--metric-border, rgba(0,0,0,0.08));
-    border-radius: 14px;
-    padding: 18px 22px;
-    transition: transform 0.15s, box-shadow 0.15s;
+    border-radius: 8px;
+    padding: 14px 16px;
+    border-left: 4px solid #5B9BD5;
 }
-div[data-testid="stMetric"]:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 16px rgba(0,0,0,0.06);
-}
+div[data-testid="stMetric"]:nth-of-type(2) { border-left-color: #70AD47; }
+div[data-testid="stMetric"]:nth-of-type(3) { border-left-color: #FFC000; }
+div[data-testid="stMetric"]:nth-of-type(4) { border-left-color: #ED7D31; }
+div[data-testid="stMetric"]:nth-of-type(5) { border-left-color: #A855F7; }
 div[data-testid="stMetric"] label {
-    font-size: 0.78rem !important;
+    font-size: 0.72rem !important;
     font-weight: 600 !important;
     letter-spacing: 0.3px;
-    opacity: 0.7;
+    opacity: 0.65;
+    text-transform: uppercase;
 }
 div[data-testid="stMetric"] div[data-testid="stMetricValue"] {
-    font-size: 1.5rem !important;
+    font-size: 1.4rem !important;
     font-weight: 700 !important;
 }
 
-/* ── Light 모드 ── */
+/* ── Light 메트릭 ── */
 @media (prefers-color-scheme: light) {
-    div[data-testid="stMetric"] { --metric-bg: #f8f9fc; --metric-border: #e2e8f0; }
+    div[data-testid="stMetric"] { background: #FFFFFF; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
 }
-/* ── Dark 모드 ── */
 @media (prefers-color-scheme: dark) {
-    div[data-testid="stMetric"] { --metric-bg: rgba(255,255,255,0.04); --metric-border: rgba(255,255,255,0.08); }
+    div[data-testid="stMetric"] { background: rgba(255,255,255,0.04); }
 }
-/* Streamlit theme override */
-[data-testid="stAppViewContainer"][data-theme="light"] div[data-testid="stMetric"] {
-    background: #f8f9fc; border-color: #e2e8f0;
+
+/* ── 탭 — 더 크게 ── */
+button[data-baseweb="tab"] {
+    font-weight: 700 !important;
+    font-size: 1rem !important;
+    padding: 12px 24px !important;
 }
-[data-testid="stAppViewContainer"][data-theme="dark"] div[data-testid="stMetric"] {
-    background: rgba(255,255,255,0.04); border-color: rgba(255,255,255,0.08);
-}
+div[data-baseweb="tab-highlight"] { background-color: #5B9BD5 !important; height: 3px !important; }
 
 /* ── 섹션 헤더 ── */
 .main h2 {
-    font-size: 1.2rem !important;
+    font-size: 1.1rem !important;
     font-weight: 700 !important;
-    margin-top: 0.3rem !important;
-    padding-bottom: 0.3rem;
+    margin-top: 0.2rem !important;
+    margin-bottom: 0.3rem !important;
 }
 
-/* ── 탭 ── */
-button[data-baseweb="tab"] {
-    font-weight: 600 !important;
-    font-size: 0.85rem !important;
-    border-radius: 8px 8px 0 0 !important;
-}
+/* ── date_input 작게 ── */
+div[data-testid="stDateInput"] { max-width: 130px; }
+div[data-testid="stDateInput"] input { font-size: 0.8rem !important; padding: 4px 8px !important; }
 
-/* ── date input 좁게 ── */
-div[data-testid="stDateInput"] { max-width: 160px; }
+/* ── 구분선 ── */
+hr { margin: 0.8rem 0 !important; opacity: 0.3; }
 
-/* ── 여백 조정 ── */
-.main .block-container { padding-top: 1.2rem; max-width: 1400px; }
-hr { margin: 1rem 0 !important; }
-
-/* ── 빠른날짜 버튼 ── */
-.quick-date-btn button {
-    border-radius: 8px !important;
+/* ── 다운로드/일반 버튼 ── */
+.stDownloadButton button, .stButton > button {
+    border-radius: 6px !important;
     font-size: 0.75rem !important;
-    padding: 4px 12px !important;
-    font-weight: 500 !important;
+    padding: 2px 10px !important;
+    font-weight: 600 !important;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -98,20 +93,20 @@ SHEET_NAMES = {
 }
 
 # ============================================================
-# 파스텔 컬러 팔레트
+# 파스텔 컬러 — Power BI 톤
 # ============================================================
 PASTEL = {
-    'blue': '#7EB5E6', 'indigo': '#9B9FE8', 'violet': '#B89FDB',
-    'rose': '#E8959B', 'orange': '#F0B07A', 'amber': '#F0D07A',
-    'emerald': '#7ECBA1', 'teal': '#7EC4C1', 'cyan': '#7ECBE6',
-    'pink': '#E89BC9', 'lime': '#B5D97A', 'slate': '#9CA8B8',
+    'blue': '#5B9BD5', 'green': '#70AD47', 'orange': '#ED7D31',
+    'yellow': '#FFC000', 'purple': '#A855F7', 'red': '#E05252',
+    'teal': '#4DB8A4', 'gray': '#A0AEC0', 'pink': '#E88B9E',
+    'indigo': '#7B8FD4',
     # 의미별
-    'revenue': '#9B9FE8', 'cost': '#E8959B', 'margin': '#7ECBA1',
-    'margin_rate': '#F0D07A',
-    'game': '#7EB5E6', 'gathering': '#B89FDB', 'iaa': '#7ECBA1', 'offerwall': '#F0B07A',
-    'pc_highlight': '#E8959B',
+    'revenue': '#5B9BD5', 'cost': '#E05252', 'margin': '#70AD47',
+    'margin_rate': '#FFC000',
+    'game': '#5B9BD5', 'gathering': '#A855F7', 'iaa': '#70AD47', 'offerwall': '#ED7D31',
+    'pc_highlight': '#E05252',
 }
-PUB_COLORS = ['#9B9FE8', '#F0B07A', '#7ECBA1', '#B89FDB', '#E8959B', '#7EC4C1', '#F0D07A', '#9CA8B8']
+PUB_COLORS = ['#5B9BD5', '#ED7D31', '#70AD47', '#A855F7', '#E05252', '#4DB8A4', '#FFC000', '#A0AEC0']
 
 # ============================================================
 # 인증
@@ -137,7 +132,7 @@ if not user_email.endswith(f"@{ALLOWED_DOMAIN}"):
     st.stop()
 
 # ============================================================
-# 데이터 로딩 — 최적화: 최근 N일만 로드 옵션
+# 데이터 로딩
 # ============================================================
 @st.cache_data(ttl=600)
 def load_sheet_data(sheet_name: str) -> pd.DataFrame:
@@ -201,14 +196,6 @@ def load_cashplay(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-def trim_recent(df, days=90):
-    """최근 N일 데이터만 반환 (초기 로딩 최적화)"""
-    if df.empty or 'date' not in df.columns:
-        return df
-    cutoff = pd.Timestamp.now() - pd.Timedelta(days=days)
-    return df[df['date'] >= cutoff].copy()
-
-
 # ============================================================
 # 유틸리티
 # ============================================================
@@ -234,10 +221,12 @@ def calc_delta_pct(series):
     return round((curr - prev) / prev * 100, 1)
 
 def make_weekly(df, date_col='date', group_col=None):
+    """주단위 집계 — 월요일 시작"""
     if df.empty:
         return df
     t = df.copy()
-    t['week_start'] = t[date_col].dt.to_period('W-SUN').apply(lambda x: x.start_time)
+    # W = 월요일 시작 주
+    t['week_start'] = t[date_col].dt.to_period('W').apply(lambda x: x.start_time)
     nums = [c for c in t.columns if pd.api.types.is_numeric_dtype(t[c]) and c != date_col]
     if group_col:
         r = t.groupby(['week_start', group_col])[nums].sum().reset_index()
@@ -258,16 +247,15 @@ def fmt_axis_won(val):
         return f"{sign}{val/1e4:,.0f}만"
     return f"{sign}{val:,.0f}"
 
-def set_y_korean_ticks(fig, values, axis='y'):
+def set_y_korean_ticks(fig, values):
     if len(values) == 0:
         return
     vmax = max(abs(v) for v in values if v == v)
     if vmax == 0:
         return
     nice = [1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, 2000, 5000]
-    step_raw = vmax / 5
     unit = 1e8 if vmax >= 1e8 else (1e4 if vmax >= 1e4 else 1)
-    step_units = step_raw / unit
+    step_units = (vmax / 5) / unit
     chosen = 1
     for n in nice:
         if n >= step_units:
@@ -286,25 +274,24 @@ def set_y_korean_ticks(fig, values, axis='y'):
         v += step
         if v > 1e12:
             break
-    if axis == 'y':
-        fig.update_yaxes(tickvals=tick_vals, ticktext=tick_texts, selector=dict(overlaying=None))
+    fig.update_yaxes(tickvals=tick_vals, ticktext=tick_texts, selector=dict(overlaying=None))
 
 
 # ============================================================
-# 차트 레이아웃 — Light/Dark 대응
+# 차트 레이아웃 — Power BI 스타일
 # ============================================================
 CHART_LAYOUT = dict(
     paper_bgcolor="rgba(0,0,0,0)",
     plot_bgcolor="rgba(0,0,0,0)",
-    font=dict(size=12),
-    margin=dict(t=15, b=50, l=60, r=20),
+    font=dict(size=11),
+    margin=dict(t=15, b=45, l=55, r=15),
     legend=dict(
-        orientation="h", yanchor="bottom", y=1.04, xanchor="right", x=1,
-        font=dict(size=11), bgcolor="rgba(0,0,0,0)"
+        orientation="h", yanchor="bottom", y=1.03, xanchor="right", x=1,
+        font=dict(size=10), bgcolor="rgba(0,0,0,0)"
     ),
-    xaxis=dict(showgrid=False, tickfont=dict(size=10.5)),
-    yaxis=dict(gridcolor="rgba(128,128,128,0.15)", gridwidth=1, tickfont=dict(size=11)),
-    hoverlabel=dict(font_size=12),
+    xaxis=dict(showgrid=False, tickfont=dict(size=10)),
+    yaxis=dict(gridcolor="rgba(128,128,128,0.12)", gridwidth=1, tickfont=dict(size=10)),
+    hoverlabel=dict(font_size=11),
     hovermode="x unified",
 )
 
@@ -317,53 +304,50 @@ def apply_layout(fig, extra=None):
 
 
 # ============================================================
-# 빠른 날짜 선택 위젯
+# 빠른 날짜 선택 — 버튼이 실제로 기간을 변경
 # ============================================================
 def quick_date_picker(data_min, data_max, prefix, default_mode="이번 달"):
-    """날짜 범위를 빠르게 선택할 수 있는 위젯. (시작일, 종료일) 반환."""
     yesterday = date.today() - timedelta(days=1)
+    today = date.today()
 
     presets = {
-        "오늘": (date.today(), date.today()),
+        "오늘": (today, today),
         "어제": (yesterday, yesterday),
-        "최근 7일": (yesterday - timedelta(days=6), yesterday),
-        "최근 14일": (yesterday - timedelta(days=13), yesterday),
-        "최근 30일": (yesterday - timedelta(days=29), yesterday),
-        "이번 달": (yesterday.replace(day=1), yesterday),
-        "전월": ((yesterday.replace(day=1) - timedelta(days=1)).replace(day=1),
-                 yesterday.replace(day=1) - timedelta(days=1)),
-        "이번 주": (yesterday - timedelta(days=yesterday.weekday()), yesterday),
-        "전주": (yesterday - timedelta(days=yesterday.weekday() + 7),
-                 yesterday - timedelta(days=yesterday.weekday() + 1)),
-        "최근 3개월": (yesterday - timedelta(days=89), yesterday),
-        "최근 6개월": (yesterday - timedelta(days=179), yesterday),
+        "이번 주": (today - timedelta(days=today.weekday()), today),
+        "전주": (today - timedelta(days=today.weekday() + 7),
+                 today - timedelta(days=today.weekday() + 1)),
+        "이번 달": (today.replace(day=1), today),
+        "전월": ((today.replace(day=1) - timedelta(days=1)).replace(day=1),
+                 today.replace(day=1) - timedelta(days=1)),
     }
 
-    cols = st.columns(len(presets))
-    selected_preset = None
-    for i, (label, _) in enumerate(presets.items()):
-        with cols[i]:
-            if st.button(label, key=f"{prefix}_q_{label}", use_container_width=True):
-                selected_preset = label
+    # 버튼 클릭 → session_state에 기간 저장
+    btn_cols = st.columns(len(presets) + 2)
+    for i, (label, (ps, pe)) in enumerate(presets.items()):
+        with btn_cols[i]:
+            if st.button(label, key=f"{prefix}_{label}", use_container_width=True):
+                st.session_state[f"{prefix}_from"] = max(ps, data_min)
+                st.session_state[f"{prefix}_to"] = min(pe, data_max)
 
-    if selected_preset:
-        s, e = presets[selected_preset]
-        st.session_state[f"{prefix}_from"] = max(s, data_min)
-        st.session_state[f"{prefix}_to"] = min(e, data_max)
-
-    # 기본값
+    # 기본값 설정
     if f"{prefix}_from" not in st.session_state:
         ds, de = presets.get(default_mode, (data_min, data_max))
         st.session_state[f"{prefix}_from"] = max(ds, data_min)
         st.session_state[f"{prefix}_to"] = min(de, data_max)
 
-    c1, c2, _ = st.columns([1, 1, 6])
-    with c1:
-        d_from = st.date_input("시작일", value=st.session_state[f"{prefix}_from"],
-                               min_value=data_min, max_value=data_max, key=f"{prefix}_di_from")
-    with c2:
-        d_to = st.date_input("종료일", value=st.session_state[f"{prefix}_to"],
-                             min_value=data_min, max_value=data_max, key=f"{prefix}_di_to")
+    # 날짜 입력 — 버튼 옆 나머지 칸에 배치
+    with btn_cols[-2]:
+        d_from = st.date_input("시작", value=st.session_state[f"{prefix}_from"],
+                               min_value=data_min, max_value=data_max, key=f"{prefix}_di_f",
+                               label_visibility="collapsed")
+    with btn_cols[-1]:
+        d_to = st.date_input("종료", value=st.session_state[f"{prefix}_to"],
+                             min_value=data_min, max_value=data_max, key=f"{prefix}_di_t",
+                             label_visibility="collapsed")
+
+    # 날짜 입력 변경 시 session_state 동기화
+    st.session_state[f"{prefix}_from"] = d_from
+    st.session_state[f"{prefix}_to"] = d_to
 
     return d_from, d_to
 
@@ -395,15 +379,14 @@ def render_pointclick_dashboard(df: pd.DataFrame):
     # ── 핵심 지표 ──
     st.markdown("## 📈 핵심 지표")
     kf, kt = quick_date_picker(dmin, dmax, "pc_kpi", "이번 달")
-
     kdf = f[(f['date'].dt.date >= kf) & (f['date'].dt.date <= kt)]
 
     if kdf.empty:
         st.info("선택한 기간에 데이터가 없습니다.")
     else:
         daily = kdf.groupby('date').agg(
-            ad_revenue=('ad_revenue','sum'), media_cost=('media_cost','sum'),
-            margin=('margin','sum'), clicks=('clicks','sum'), conversions=('conversions','sum')
+            ad_revenue=('ad_revenue','sum'), margin=('margin','sum'),
+            clicks=('clicks','sum'), conversions=('conversions','sum')
         ).reset_index().sort_values('date')
 
         tr = kdf['ad_revenue'].sum()
@@ -423,9 +406,8 @@ def render_pointclick_dashboard(df: pd.DataFrame):
     st.markdown("---")
 
     # ── 매출/마진 추이 ──
-    st.markdown("## 💰 매출 · 마진 추이 (주단위)")
-    tf, tt = quick_date_picker(dmin, dmax, "pc_tr", "최근 6개월")
-
+    st.markdown("## 💰 매출 · 마진 추이 (주단위, 월요일 기준)")
+    tf, tt = quick_date_picker(dmin, dmax, "pc_tr", "전월")
     tdf = f[(f['date'].dt.date >= tf) & (f['date'].dt.date <= tt)]
 
     if tdf.empty:
@@ -441,16 +423,16 @@ def render_pointclick_dashboard(df: pd.DataFrame):
         cl, cr = st.columns(2)
 
         with cl:
-            st.markdown("#### 광고비(매출) — 퍼블리셔별")
+            st.markdown("#### 광고비(매출)")
             fig = go.Figure()
             for i, p in enumerate(pubs):
                 s = wp[wp['publisher_type']==p].sort_values('week')
                 fig.add_trace(go.Bar(
                     x=s['wl'], y=s['ad_revenue'], name=p,
                     marker_color=PUB_COLORS[i%len(PUB_COLORS)],
-                    hovertemplate=f"<b>{p}</b><br>%{{x}}<br>%{{y:,.0f}}원<extra></extra>"
+                    hovertemplate=f"<b>{p}</b><br>%{{y:,.0f}}원<extra></extra>"
                 ))
-            apply_layout(fig, dict(barmode='stack', height=400, xaxis_tickangle=-45))
+            apply_layout(fig, dict(barmode='stack', height=380, xaxis_tickangle=-45))
             set_y_korean_ticks(fig, wp['ad_revenue'].tolist())
             st.plotly_chart(fig, use_container_width=True)
 
@@ -468,17 +450,17 @@ def render_pointclick_dashboard(df: pd.DataFrame):
                 x=wt['wl'], y=wt['margin_rate'], name='마진율',
                 mode='lines+markers+text',
                 text=[f"{v:.1f}%" for v in wt['margin_rate']],
-                textposition='top center', textfont=dict(size=10, color=PASTEL['margin_rate']),
-                line=dict(color=PASTEL['margin_rate'], width=2.5),
-                marker=dict(size=7, color=PASTEL['margin_rate']),
+                textposition='top center', textfont=dict(size=9, color=PASTEL['yellow']),
+                line=dict(color=PASTEL['yellow'], width=2.5),
+                marker=dict(size=6, color=PASTEL['yellow']),
                 yaxis='y2', hovertemplate="마진율: %{y:.1f}%<extra></extra>"
             ))
             apply_layout(fig2, dict(
-                barmode='stack', height=400, xaxis_tickangle=-45,
+                barmode='stack', height=380, xaxis_tickangle=-45,
                 yaxis2=dict(title="", overlaying='y', side='right',
                     range=[0, max(wt['margin_rate'].max()*1.5, 10)],
                     ticksuffix="%", gridcolor="rgba(0,0,0,0)",
-                    tickfont=dict(size=11, color=PASTEL['margin_rate']))
+                    tickfont=dict(size=10, color=PASTEL['yellow']))
             ))
             set_y_korean_ticks(fig2, wp['margin'].tolist())
             st.plotly_chart(fig2, use_container_width=True)
@@ -490,7 +472,6 @@ def render_pointclick_dashboard(df: pd.DataFrame):
     st.caption(f"📅 {kf} ~ {kt}")
 
     if kdf.empty:
-        st.info("데이터가 없습니다.")
         return
 
     tab_conv, tab_adv, tab_media, tab_raw = st.tabs([
@@ -510,23 +491,23 @@ def render_pointclick_dashboard(df: pd.DataFrame):
         with cc1:
             fig_a = go.Figure()
             fig_a.add_trace(go.Bar(x=at['ad_type'], y=at['clicks'], name='클릭수',
-                marker_color=PASTEL['blue'], opacity=0.6,
+                marker_color=PASTEL['blue'], opacity=0.55,
                 hovertemplate="클릭: %{y:,.0f}<extra></extra>"))
             fig_a.add_trace(go.Bar(x=at['ad_type'], y=at['conversions'], name='전환수',
-                marker_color=PASTEL['emerald'], opacity=0.85,
+                marker_color=PASTEL['green'], opacity=0.85,
                 hovertemplate="전환: %{y:,.0f}<extra></extra>"))
             fig_a.add_trace(go.Scatter(
                 x=at['ad_type'], y=at['cvr'], name='CVR', mode='lines+markers+text',
                 text=[f"{v:.1f}%" for v in at['cvr']], textposition='top center',
-                textfont=dict(size=10, color=PASTEL['rose']),
-                line=dict(color=PASTEL['rose'], width=2.5), marker=dict(size=9),
+                textfont=dict(size=9, color=PASTEL['red']),
+                line=dict(color=PASTEL['red'], width=2.5), marker=dict(size=8),
                 yaxis='y2', hovertemplate="CVR: %{y:.2f}%<extra></extra>"
             ))
             apply_layout(fig_a, dict(
-                barmode='group', height=400,
+                barmode='group', height=380,
                 yaxis2=dict(title="", overlaying='y', side='right',
                     range=[0, max(at['cvr'].max()*1.5, 10)], ticksuffix="%",
-                    gridcolor="rgba(0,0,0,0)", tickfont=dict(color=PASTEL['rose']))
+                    gridcolor="rgba(0,0,0,0)", tickfont=dict(color=PASTEL['red']))
             ))
             st.plotly_chart(fig_a, use_container_width=True)
         with cc2:
@@ -538,7 +519,7 @@ def render_pointclick_dashboard(df: pd.DataFrame):
             st.dataframe(d.rename(columns={
                 'ad_type':'광고타입','clicks':'클릭수','conversions':'전환수',
                 'ad_revenue':'광고비(매출)','margin':'마진','cvr':'CVR','margin_rate':'마진율'
-            }), use_container_width=True, hide_index=True, height=400)
+            }), use_container_width=True, hide_index=True, height=380)
 
         st.markdown("##### 일별 광고타입별 전환수")
         dat = kdf.groupby(['date','ad_type']).agg(conversions=('conversions','sum')).reset_index()
@@ -547,7 +528,7 @@ def render_pointclick_dashboard(df: pd.DataFrame):
             s = dat[dat['ad_type']==a].sort_values('date')
             fig_d.add_trace(go.Scatter(x=s['date'], y=s['conversions'], name=a, mode='lines+markers',
                 hovertemplate=f"<b>{a}</b><br>%{{x|%m/%d}}: %{{y:,.0f}}건<extra></extra>"))
-        apply_layout(fig_d, dict(height=320))
+        apply_layout(fig_d, dict(height=300))
         st.plotly_chart(fig_d, use_container_width=True)
 
     with tab_adv:
@@ -565,7 +546,7 @@ def render_pointclick_dashboard(df: pd.DataFrame):
                 color='margin_rate', color_continuous_scale='RdYlGn',
                 labels={'ad_revenue':'광고비(매출)','advertiser':'광고주','margin_rate':'마진율(%)'})
             fig_av.update_traces(hovertemplate="<b>%{y}</b><br>매출: %{x:,.0f}원<extra></extra>")
-            apply_layout(fig_av, dict(height=450, yaxis=dict(autorange="reversed")))
+            apply_layout(fig_av, dict(height=420, yaxis=dict(autorange="reversed")))
             st.plotly_chart(fig_av, use_container_width=True)
         with a2:
             da = adv.copy()
@@ -576,7 +557,7 @@ def render_pointclick_dashboard(df: pd.DataFrame):
             st.dataframe(da.rename(columns={
                 'advertiser':'광고주','ad_revenue':'광고비(매출)','margin':'마진',
                 'margin_rate':'마진율','conversions':'전환수','clicks':'클릭수','cvr':'CVR','ad_count':'광고수'
-            }), use_container_width=True, hide_index=True, height=450)
+            }), use_container_width=True, hide_index=True, height=420)
 
     with tab_media:
         med = kdf.groupby('media_name').agg(
@@ -592,7 +573,7 @@ def render_pointclick_dashboard(df: pd.DataFrame):
             fig_m = px.treemap(med.head(20), path=['media_name'], values='ad_revenue',
                 color='margin_rate', color_continuous_scale='RdYlGn')
             fig_m.update_traces(hovertemplate="<b>%{label}</b><br>매출: %{value:,.0f}원<extra></extra>")
-            fig_m.update_layout(height=450, margin=dict(t=10,b=10), paper_bgcolor="rgba(0,0,0,0)")
+            fig_m.update_layout(height=420, margin=dict(t=10,b=10), paper_bgcolor="rgba(0,0,0,0)")
             st.plotly_chart(fig_m, use_container_width=True)
         with mc2:
             dm = med.copy()
@@ -603,10 +584,9 @@ def render_pointclick_dashboard(df: pd.DataFrame):
             st.dataframe(dm.rename(columns={
                 'media_name':'매체명','ad_revenue':'광고비(매출)','margin':'마진',
                 'margin_rate':'마진율','conversions':'전환수','clicks':'클릭수','cvr':'CVR'
-            }), use_container_width=True, hide_index=True, height=450)
+            }), use_container_width=True, hide_index=True, height=420)
 
     with tab_raw:
-        st.caption("필터 + 핵심 지표 기간 적용")
         raw = kdf.copy().sort_values('date', ascending=False)
         rd = raw.copy()
         rd['date'] = rd['date'].dt.strftime('%Y-%m-%d')
@@ -642,7 +622,6 @@ def render_cashplay_dashboard(df: pd.DataFrame):
     # ── 핵심 지표 ──
     st.markdown("## 📈 핵심 지표")
     kf, kt = quick_date_picker(dmin, dmax, "cp_kpi", "이번 달")
-
     kdf = df[(df['date'].dt.date >= kf) & (df['date'].dt.date <= kt)]
 
     if kdf.empty:
@@ -665,9 +644,8 @@ def render_cashplay_dashboard(df: pd.DataFrame):
     st.markdown("---")
 
     # ── 매출/비용/마진 추이 ──
-    st.markdown("## 💰 매출 · 비용 · 마진 추이 (주단위)")
-    tf, tt = quick_date_picker(dmin, dmax, "cp_tr", "최근 6개월")
-
+    st.markdown("## 💰 매출 · 비용 · 마진 추이 (주단위, 월요일 기준)")
+    tf, tt = quick_date_picker(dmin, dmax, "cp_tr", "전월")
     tdf = df[(df['date'].dt.date >= tf) & (df['date'].dt.date <= tt)]
 
     if not tdf.empty:
@@ -677,20 +655,20 @@ def render_cashplay_dashboard(df: pd.DataFrame):
 
         fig = go.Figure()
         fig.add_trace(go.Bar(x=w['wl'], y=w['revenue_total'], name='총 매출',
-            marker_color=PASTEL['indigo'], opacity=0.75,
+            marker_color=PASTEL['blue'], opacity=0.75,
             hovertemplate="매출: %{y:,.0f}원<extra></extra>"))
         fig.add_trace(go.Bar(x=w['wl'], y=-w['cost_total'], name='매입(리워드)',
-            marker_color=PASTEL['rose'], opacity=0.75,
+            marker_color=PASTEL['red'], opacity=0.75,
             customdata=w['cost_total'],
             hovertemplate="매입: %{customdata:,.0f}원<extra></extra>"))
         fig.add_trace(go.Scatter(
             x=w['wl'], y=w['margin'], name='마진', mode='lines+markers+text',
             text=[format_won(v) for v in w['margin']], textposition='top center',
-            textfont=dict(size=10, color=PASTEL['emerald']),
-            line=dict(color=PASTEL['emerald'], width=2.5), marker=dict(size=8, color=PASTEL['emerald']),
+            textfont=dict(size=9, color=PASTEL['green']),
+            line=dict(color=PASTEL['green'], width=2.5), marker=dict(size=7, color=PASTEL['green']),
             hovertemplate="마진: %{y:,.0f}원<extra></extra>"
         ))
-        apply_layout(fig, dict(barmode='relative', height=420, xaxis_tickangle=-45))
+        apply_layout(fig, dict(barmode='relative', height=400, xaxis_tickangle=-45))
         all_vals = list(w['revenue_total']) + list(-w['cost_total']) + list(w['margin'])
         set_y_korean_ticks(fig, all_vals)
         st.plotly_chart(fig, use_container_width=True)
@@ -710,10 +688,10 @@ def render_cashplay_dashboard(df: pd.DataFrame):
             fig_p = px.pie(cdf, values='amount', names='category',
                 color_discrete_sequence=[PASTEL['game'], PASTEL['gathering'], PASTEL['iaa'], PASTEL['offerwall']],
                 hole=0.5)
-            fig_p.update_traces(textinfo='label+percent', textfont_size=12,
+            fig_p.update_traces(textinfo='label+percent', textfont_size=11,
                 hovertemplate="<b>%{label}</b><br>%{value:,.0f}원 (%{percent})<extra></extra>")
-            fig_p.update_layout(height=380, margin=dict(t=30,b=10), showlegend=False,
-                title_text="카테고리별 매출 비중", title_font=dict(size=13),
+            fig_p.update_layout(height=360, margin=dict(t=25,b=10), showlegend=False,
+                title_text="카테고리별 매출", title_font=dict(size=12),
                 paper_bgcolor="rgba(0,0,0,0)")
             st.plotly_chart(fig_p, use_container_width=True)
 
@@ -724,8 +702,7 @@ def render_cashplay_dashboard(df: pd.DataFrame):
                                   ('IAA','iaa_total',PASTEL['iaa']),('오퍼월','offerwall_total',PASTEL['offerwall'])]:
                 fig_s.add_trace(go.Bar(x=ks2['date'], y=ks2[col], name=nm, marker_color=clr,
                     hovertemplate=f"<b>{nm}</b><br>%{{x|%m/%d}}: %{{y:,.0f}}원<extra></extra>"))
-            apply_layout(fig_s, dict(barmode='stack', height=380,
-                title_text="일별 매출 구성", title_font=dict(size=13)))
+            apply_layout(fig_s, dict(barmode='stack', height=360, title_text="일별 매출 구성", title_font=dict(size=12)))
             set_y_korean_ticks(fig_s, ks2['revenue_total'].tolist())
             st.plotly_chart(fig_s, use_container_width=True)
 
@@ -745,26 +722,26 @@ def render_cashplay_dashboard(df: pd.DataFrame):
                 marker_color=PASTEL['pc_highlight'], text=[format_won(pcr)], textposition='auto', width=0.35,
                 hovertemplate="자사: %{y:,.0f}원<extra></extra>"))
             fig_b.add_trace(go.Bar(x=['외부 매체'], y=[ext],
-                marker_color=PASTEL['slate'], text=[format_won(ext)], textposition='auto', width=0.35,
+                marker_color=PASTEL['gray'], text=[format_won(ext)], textposition='auto', width=0.35,
                 hovertemplate="외부: %{y:,.0f}원<extra></extra>"))
-            apply_layout(fig_b, dict(height=350, showlegend=False))
+            apply_layout(fig_b, dict(height=330, showlegend=False))
             set_y_korean_ticks(fig_b, [pcr, ext])
             st.plotly_chart(fig_b, use_container_width=True)
 
         with c4:
             ks3 = kdf.sort_values('date')
             fig_dd = go.Figure()
-            fig_dd.add_trace(go.Bar(x=ks3['date'], y=ks3['gathering_pointclick'], name='게더링(포인트클릭)',
-                marker_color=PASTEL['rose'], hovertemplate="게더링: %{y:,.0f}원<extra></extra>"))
-            fig_dd.add_trace(go.Bar(x=ks3['date'], y=ks3['offerwall_pointclick'], name='오퍼월(포인트클릭)',
+            fig_dd.add_trace(go.Bar(x=ks3['date'], y=ks3['gathering_pointclick'], name='게더링(PC)',
+                marker_color=PASTEL['red'], hovertemplate="게더링: %{y:,.0f}원<extra></extra>"))
+            fig_dd.add_trace(go.Bar(x=ks3['date'], y=ks3['offerwall_pointclick'], name='오퍼월(PC)',
                 marker_color=PASTEL['pink'], hovertemplate="오퍼월: %{y:,.0f}원<extra></extra>"))
-            apply_layout(fig_dd, dict(barmode='stack', height=350))
+            apply_layout(fig_dd, dict(barmode='stack', height=330))
             st.plotly_chart(fig_dd, use_container_width=True)
 
         total_all = kdf['revenue_total'].sum()
         pc_r = (pcr/total_all*100) if total_all else 0
         st.info(
-            f"**자사 매출 요약** — 게더링: **{format_won(kdf['gathering_pointclick'].sum())}** · "
+            f"**자사 매출** — 게더링: **{format_won(kdf['gathering_pointclick'].sum())}** · "
             f"오퍼월: **{format_won(kdf['offerwall_pointclick'].sum())}** · "
             f"합계: **{format_won(pcr)}** (전체의 **{format_pct(pc_r)}**)")
 
@@ -775,15 +752,14 @@ def render_cashplay_dashboard(df: pd.DataFrame):
 
     if not kdf.empty:
         dt1, dt2, dt3, dt4, dt5, dt6 = st.tabs([
-            "🎮 게임", "🔗 게더링", "📺 IAA", "📱 오퍼월", "💸 리워드(매입)", "📋 전체"
+            "🎮 게임", "🔗 게더링", "📺 IAA", "📱 오퍼월", "💸 리워드", "📋 전체"
         ])
 
         with dt1:
             cols_g = ['date','game_direct','game_dsp','game_rs','game_acquisition','game_total']
             dg = kdf[cols_g].copy().sort_values('date', ascending=False)
             dg['date'] = dg['date'].dt.strftime('%Y-%m-%d')
-            for c in cols_g[1:]:
-                dg[c] = dg[c].apply(lambda x: f"{x:,.0f}")
+            for c in cols_g[1:]: dg[c] = dg[c].apply(lambda x: f"{x:,.0f}")
             st.dataframe(dg.rename(columns={'date':'날짜','game_direct':'직거래','game_dsp':'DSP','game_rs':'RS','game_acquisition':'인수','game_total':'합계'}),
                 use_container_width=True, hide_index=True)
             gs = kdf.sort_values('date')
@@ -791,7 +767,7 @@ def render_cashplay_dashboard(df: pd.DataFrame):
             for nm, col in [('직거래','game_direct'),('DSP','game_dsp'),('RS','game_rs'),('인수','game_acquisition')]:
                 fig_g.add_trace(go.Bar(x=gs['date'], y=gs[col], name=nm,
                     hovertemplate=f"{nm}: %{{y:,.0f}}원<extra></extra>"))
-            apply_layout(fig_g, dict(barmode='stack', height=350))
+            apply_layout(fig_g, dict(barmode='stack', height=330))
             st.plotly_chart(fig_g, use_container_width=True)
 
         with dt2:
@@ -805,8 +781,7 @@ def render_cashplay_dashboard(df: pd.DataFrame):
             cols_i = ['date','iaa_levelplay','iaa_adwhale','iaa_hubble','iaa_total']
             di = kdf[cols_i].copy().sort_values('date', ascending=False)
             di['date'] = di['date'].dt.strftime('%Y-%m-%d')
-            for c in cols_i[1:]:
-                di[c] = di[c].apply(lambda x: f"{x:,.0f}")
+            for c in cols_i[1:]: di[c] = di[c].apply(lambda x: f"{x:,.0f}")
             st.dataframe(di.rename(columns={'date':'날짜','iaa_levelplay':'레벨플레이','iaa_adwhale':'애드웨일','iaa_hubble':'허블','iaa_total':'합계'}),
                 use_container_width=True, hide_index=True)
             ias = kdf.sort_values('date')
@@ -814,7 +789,7 @@ def render_cashplay_dashboard(df: pd.DataFrame):
             for nm, col in [('레벨플레이','iaa_levelplay'),('애드웨일','iaa_adwhale'),('허블','iaa_hubble')]:
                 fig_i.add_trace(go.Bar(x=ias['date'], y=ias[col], name=nm,
                     hovertemplate=f"{nm}: %{{y:,.0f}}원<extra></extra>"))
-            apply_layout(fig_i, dict(barmode='stack', height=350))
+            apply_layout(fig_i, dict(barmode='stack', height=330))
             st.plotly_chart(fig_i, use_container_width=True)
 
         with dt4:
@@ -822,8 +797,7 @@ def render_cashplay_dashboard(df: pd.DataFrame):
                       'offerwall_adforus','offerwall_addison','offerwall_adjo','offerwall_total']
             do = kdf[cols_o].copy().sort_values('date', ascending=False)
             do['date'] = do['date'].dt.strftime('%Y-%m-%d')
-            for c in cols_o[1:]:
-                do[c] = do[c].apply(lambda x: f"{x:,.0f}")
+            for c in cols_o[1:]: do[c] = do[c].apply(lambda x: f"{x:,.0f}")
             st.dataframe(do.rename(columns={
                 'date':'날짜','offerwall_adpopcorn':'애드팝콘','offerwall_pointclick':'⭐포인트클릭',
                 'offerwall_ive':'아이브','offerwall_adforus':'애드포러스',
@@ -838,7 +812,7 @@ def render_cashplay_dashboard(df: pd.DataFrame):
                 kw = dict(marker_color=clr) if clr else {}
                 fig_o.add_trace(go.Bar(x=ows['date'], y=ows[col], name=nm,
                     hovertemplate=f"{nm}: %{{y:,.0f}}원<extra></extra>", **kw))
-            apply_layout(fig_o, dict(barmode='stack', height=350))
+            apply_layout(fig_o, dict(barmode='stack', height=330))
             st.plotly_chart(fig_o, use_container_width=True)
 
         with dt5:
@@ -847,18 +821,18 @@ def render_cashplay_dashboard(df: pd.DataFrame):
                 rws = kdf.sort_values('date')
                 fig_rw = go.Figure()
                 fig_rw.add_trace(go.Bar(x=rws['date'], y=rws['reward_paid'], name='유상',
-                    marker_color=PASTEL['rose'], hovertemplate="유상: %{y:,.0f}원<extra></extra>"))
+                    marker_color=PASTEL['red'], hovertemplate="유상: %{y:,.0f}원<extra></extra>"))
                 fig_rw.add_trace(go.Bar(x=rws['date'], y=rws['reward_free'], name='무상',
                     marker_color=PASTEL['orange'], hovertemplate="무상: %{y:,.0f}원<extra></extra>"))
-                apply_layout(fig_rw, dict(barmode='stack', height=350))
+                apply_layout(fig_rw, dict(barmode='stack', height=330))
                 st.plotly_chart(fig_rw, use_container_width=True)
             with rw2:
                 fig_rp = px.pie(values=[kdf['reward_paid'].sum(), kdf['reward_free'].sum()],
-                    names=['유상','무상'], color_discrete_sequence=[PASTEL['rose'], PASTEL['orange']], hole=0.5)
+                    names=['유상','무상'], color_discrete_sequence=[PASTEL['red'], PASTEL['orange']], hole=0.5)
                 fig_rp.update_traces(textinfo='label+percent+value',
                     hovertemplate="<b>%{label}</b><br>%{value:,.0f}원 (%{percent})<extra></extra>")
-                fig_rp.update_layout(height=350, margin=dict(t=30,b=10),
-                    title_text="유상/무상 비율", title_font=dict(size=13),
+                fig_rp.update_layout(height=330, margin=dict(t=25,b=10),
+                    title_text="유상/무상 비율", title_font=dict(size=12),
                     paper_bgcolor="rgba(0,0,0,0)")
                 st.plotly_chart(fig_rp, use_container_width=True)
 
@@ -895,33 +869,24 @@ def main():
             st.logout()
         st.markdown("---")
         st.markdown("## ⚙️ 설정")
-
-        # 데이터 로딩 범위 선택
-        load_range = st.radio("📦 데이터 범위", ["최근 3개월 (빠름)", "최근 6개월", "전체 (느림)"],
-                              index=0, key="load_range")
-        range_map = {"최근 3개월 (빠름)": 90, "최근 6개월": 180, "전체 (느림)": 9999}
-        load_days = range_map[load_range]
-
         if st.button("🔄 데이터 새로고침", use_container_width=True):
             st.cache_data.clear()
             st.rerun()
         st.markdown("---")
 
-    with st.spinner("데이터 로딩 중..."):
-        pc_raw = load_sheet_data(SHEET_NAMES["포인트클릭"]["db"])
-        cp_raw = load_sheet_data(SHEET_NAMES["캐시플레이"]["db"])
-        pc_df = load_pointclick(pc_raw)
-        cp_df = load_cashplay(cp_raw)
+    # 단계적 로딩: 먼저 UI 표시, 데이터는 탭 선택 시 로딩
+    tab_pc, tab_cp = st.tabs(["🟢 PointClick (B2B)", "🔵 CashPlay (B2C)"])
 
-        # 초기 로딩 최적화: 선택한 범위만 표시
-        if load_days < 9999:
-            pc_df = trim_recent(pc_df, load_days)
-            cp_df = trim_recent(cp_df, load_days)
-
-    tab_pc, tab_cp = st.tabs(["🟢 포인트클릭", "🔵 캐시플레이"])
     with tab_pc:
+        with st.spinner("포인트클릭 데이터 로딩 중..."):
+            pc_raw = load_sheet_data(SHEET_NAMES["포인트클릭"]["db"])
+            pc_df = load_pointclick(pc_raw)
         render_pointclick_dashboard(pc_df)
+
     with tab_cp:
+        with st.spinner("캐시플레이 데이터 로딩 중..."):
+            cp_raw = load_sheet_data(SHEET_NAMES["캐시플레이"]["db"])
+            cp_df = load_cashplay(cp_raw)
         render_cashplay_dashboard(cp_df)
 
 
