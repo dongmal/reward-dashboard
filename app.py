@@ -63,11 +63,11 @@ hr { margin: 0.8rem 0 !important; opacity: 0.3; }
    ══════════════════════════════════════════ */
 .main .stButton > button {
     border-radius: 4px !important;
-    font-size: 11px !important;
-    padding: 2px 10px !important;
+    font-size: 10px !important;
+    padding: 1px 8px !important;
     font-weight: 500 !important;
     min-height: 0 !important;
-    height: 26px !important;
+    height: 22px !important;
     line-height: 1 !important;
     width: auto !important;
     background-color: #f7f9fc;
@@ -82,9 +82,9 @@ hr { margin: 0.8rem 0 !important; opacity: 0.3; }
     background-color: #5B9BD5 !important;
     color: white !important;
     border-color: #5B9BD5 !important;
-    font-size: 11px !important;
-    padding: 2px 10px !important;
-    height: 26px !important;
+    font-size: 10px !important;
+    padding: 1px 8px !important;
+    height: 22px !important;
     min-height: 0 !important;
 }
 
@@ -105,12 +105,39 @@ section[data-testid="stSidebar"] .stButton > button {
     width: 100% !important;
 }
 
-/* ── 날짜 입력 ── */
-div[data-testid="stDateInput"] { max-width: 150px; }
-div[data-testid="stDateInput"] input { font-size: 0.85rem !important; padding: 5px 8px !important; }
+/* ── 날짜 입력 — 박스형 클릭 가능한 UI ── */
+div[data-testid="stDateInput"] { max-width: 140px; }
+div[data-testid="stDateInput"] input {
+    font-size: 0.8rem !important;
+    padding: 5px 8px !important;
+    border: 1.5px solid #cbd5e0 !important;
+    border-radius: 6px !important;
+    background-color: #ffffff !important;
+    color: #2d3748 !important;
+    cursor: pointer !important;
+}
+div[data-testid="stDateInput"] input:hover {
+    border-color: #5B9BD5 !important;
+}
+div[data-testid="stDateInput"] input:focus {
+    border-color: #5B9BD5 !important;
+    box-shadow: 0 0 0 2px rgba(91,155,213,0.2) !important;
+}
+@media (prefers-color-scheme: dark) {
+    div[data-testid="stDateInput"] input {
+        background-color: #2d3748 !important;
+        border-color: #4a5568 !important;
+        color: #e2e8f0 !important;
+    }
+}
+/* ── 날짜 라벨 더 작게 ── */
+div[data-testid="stDateInput"] label {
+    font-size: 0.7rem !important;
+    margin-bottom: 2px !important;
+}
 
 /* ── 컬럼 간격 최소화 ── */
-.main [data-testid="stHorizontalBlock"] { gap: 0.3rem !important; }
+.main [data-testid="stHorizontalBlock"] { gap: 0.15rem !important; }
 </style>
 """, unsafe_allow_html=True)
 
