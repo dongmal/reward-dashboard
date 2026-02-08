@@ -10,7 +10,7 @@ from datetime import datetime, timedelta, date
 # 페이지 설정
 # ============================================================
 st.set_page_config(
-    page_title="리워드 플랫폼 대시보드",
+    page_title="E프로젝트 대시보드",
     page_icon="📊",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -122,7 +122,7 @@ if not st.user.is_logged_in:
     c1, c2, c3 = st.columns([1, 1.5, 1])
     with c2:
         st.markdown("")
-        st.markdown("### 📊 리워드 플랫폼 대시보드")
+        st.markdown("### 📊 E프로젝트 대시보드")
         st.caption(f"@{ALLOWED_DOMAIN} 계정으로 로그인해 주세요")
         st.markdown("")
         if st.button("🔑 Google 계정으로 로그인", use_container_width=True):
@@ -882,7 +882,7 @@ def render_cashplay_dashboard(df: pd.DataFrame):
 # 메인
 # ============================================================
 def main():
-    st.title("📊 리워드 플랫폼 대시보드")
+    st.title("📊 E프로젝트 대시보드")
     st.caption(f"마지막 새로고침: {datetime.now().strftime('%Y-%m-%d %H:%M')}")
 
     with st.sidebar:
