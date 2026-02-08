@@ -26,9 +26,7 @@ st.markdown("""
 
 /* ── 메트릭 카드 ── */
 div[data-testid="stMetric"] {
-    border-radius: 8px;
-    padding: 14px 16px;
-    border-left: 4px solid #5B9BD5;
+    border-radius: 8px; padding: 14px 16px; border-left: 4px solid #5B9BD5;
 }
 div[data-testid="stMetric"]:nth-of-type(2) { border-left-color: #70AD47; }
 div[data-testid="stMetric"]:nth-of-type(3) { border-left-color: #FFC000; }
@@ -58,86 +56,95 @@ div[data-baseweb="tab-highlight"] { background-color: #5B9BD5 !important; height
 /* ── 구분선 ── */
 hr { margin: 0.8rem 0 !important; opacity: 0.3; }
 
-/* ══════════════════════════════════════════
-   프리셋 버튼: 메인 영역 전체 버튼을 소형화
-   ══════════════════════════════════════════ */
+/* ══════════════════════════════════════
+   메인 버튼 — all:unset 으로 Streamlit 기본 스타일 완전 제거
+   ══════════════════════════════════════ */
 .main .stButton > button {
-    border-radius: 4px !important;
-    font-size: 10px !important;
-    padding: 1px 8px !important;
+    all: unset !important;
+    box-sizing: border-box !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    cursor: pointer !important;
+    border-radius: 3px !important;
+    font-size: 0.6rem !important;
     font-weight: 500 !important;
-    min-height: 0 !important;
-    height: 22px !important;
+    padding: 1px 6px !important;
+    height: 18px !important;
     line-height: 1 !important;
-    width: auto !important;
-    background-color: #f7f9fc;
-    border: 1px solid #e2e8f0;
-    color: #4a5568;
+    white-space: nowrap !important;
+    background: #f1f5f9 !important;
+    border: 1px solid #cbd5e0 !important;
+    color: #475569 !important;
 }
 .main .stButton > button:hover {
-    border-color: #5B9BD5; color: #5B9BD5; background-color: #ebf8ff;
-}
-/* ── 활성 프리셋 버튼 (primary) ── */
-.main .stButton > button[kind="primary"] {
-    background-color: #5B9BD5 !important;
-    color: white !important;
     border-color: #5B9BD5 !important;
-    font-size: 10px !important;
-    padding: 1px 8px !important;
-    height: 22px !important;
-    min-height: 0 !important;
+    color: #5B9BD5 !important;
+    background: #eff6ff !important;
+}
+/* primary (활성 프리셋) */
+.main .stButton > button[kind="primary"],
+.main .stButton > button[data-testid="stBaseButton-primary"] {
+    background: #5B9BD5 !important;
+    color: #fff !important;
+    border-color: #5B9BD5 !important;
 }
 
-/* ── 다운로드 버튼만 좀 더 크게 ── */
-.main .stDownloadButton > button {
-    font-size: 0.75rem !important;
-    padding: 4px 14px !important;
-    height: 32px !important;
-    font-weight: 600 !important;
-}
-
-/* ── 사이드바 버튼은 정상 크기 유지 ── */
+/* ── 사이드바 버튼 정상 복원 ── */
 section[data-testid="stSidebar"] .stButton > button {
+    all: revert !important;
     font-size: 0.85rem !important;
     padding: 8px 16px !important;
-    height: auto !important;
     min-height: 38px !important;
     width: 100% !important;
-}
-
-/* ── 날짜 입력 — 박스형 클릭 가능한 UI ── */
-div[data-testid="stDateInput"] { max-width: 140px; }
-div[data-testid="stDateInput"] input {
-    font-size: 0.8rem !important;
-    padding: 5px 8px !important;
-    border: 1.5px solid #cbd5e0 !important;
-    border-radius: 6px !important;
-    background-color: #ffffff !important;
-    color: #2d3748 !important;
     cursor: pointer !important;
 }
-div[data-testid="stDateInput"] input:hover {
-    border-color: #5B9BD5 !important;
+
+/* ── 다운로드 버튼 ── */
+.main .stDownloadButton > button {
+    font-size: 0.65rem !important;
+    padding: 2px 8px !important;
+    height: 22px !important;
 }
-div[data-testid="stDateInput"] input:focus {
-    border-color: #5B9BD5 !important;
-    box-shadow: 0 0 0 2px rgba(91,155,213,0.2) !important;
+
+/* ══════════════════════════════════════
+   날짜 입력 — 선명한 박스
+   ══════════════════════════════════════ */
+div[data-testid="stDateInput"] { max-width: 120px !important; }
+div[data-testid="stDateInput"] input {
+    font-size: 0.7rem !important;
+    padding: 3px 5px !important;
+    border: 1.5px solid #94a3b8 !important;
+    border-radius: 4px !important;
+    background: #fff !important;
+    color: #1e293b !important;
+}
+div[data-testid="stDateInput"] input:hover { border-color: #5B9BD5 !important; }
+div[data-testid="stDateInput"] label {
+    font-size: 0.55rem !important;
+    margin-bottom: 0px !important;
+    opacity: 0.6;
 }
 @media (prefers-color-scheme: dark) {
     div[data-testid="stDateInput"] input {
-        background-color: #2d3748 !important;
-        border-color: #4a5568 !important;
-        color: #e2e8f0 !important;
+        background: #1e293b !important; border-color: #475569 !important; color: #e2e8f0 !important;
     }
 }
-/* ── 날짜 라벨 더 작게 ── */
-div[data-testid="stDateInput"] label {
-    font-size: 0.7rem !important;
-    margin-bottom: 2px !important;
-}
 
-/* ── 컬럼 간격 최소화 ── */
-.main [data-testid="stHorizontalBlock"] { gap: 0.15rem !important; }
+/* ══════════════════════════════════════
+   핵심: 컬럼 gap + 패딩 완전 제거
+   ══════════════════════════════════════ */
+.main [data-testid="stHorizontalBlock"] {
+    gap: 2px !important;
+}
+.main [data-testid="stColumn"] {
+    padding-left: 0px !important;
+    padding-right: 0px !important;
+}
+.main [data-testid="stColumn"] > div {
+    padding-left: 0px !important;
+    padding-right: 0px !important;
+}
 </style>
 """, unsafe_allow_html=True)
 
