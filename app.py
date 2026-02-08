@@ -70,27 +70,46 @@ div[data-baseweb="tab-highlight"] { background-color: #5B9BD5 !important; height
     margin-bottom: 0.3rem !important;
 }
 
-/* ── date_input 작게 ── */
-div[data-testid="stDateInput"] { max-width: 130px; }
-div[data-testid="stDateInput"] input { font-size: 0.8rem !important; padding: 4px 8px !important; }
+/* ── date_input 정상 크기 ── */
+div[data-testid="stDateInput"] { max-width: 160px; }
+div[data-testid="stDateInput"] input { font-size: 0.85rem !important; padding: 6px 10px !important; }
 
 /* ── 구분선 ── */
 hr { margin: 0.8rem 0 !important; opacity: 0.3; }
 
-/* ── 다운로드/일반 버튼 ── */
-.stDownloadButton button, .stButton > button {
+/* ── 다운로드 버튼 ── */
+.stDownloadButton button {
     border-radius: 6px !important;
-    font-size: 0.7rem !important;
-    padding: 1px 8px !important;
+    font-size: 0.75rem !important;
+    padding: 4px 12px !important;
     font-weight: 600 !important;
     min-height: 0 !important;
     height: 32px !important;
     line-height: 1 !important;
 }
 
+/* ── 프리셋 날짜 버튼 (매우 작게, 간격 없이) ── */
+.stButton > button {
+    border-radius: 4px !important;
+    font-size: 0.6rem !important;
+    padding: 0px 4px !important;
+    font-weight: 500 !important;
+    min-height: 0 !important;
+    height: 24px !important;
+    line-height: 1 !important;
+    background-color: #f7f9fc;
+    border: 1px solid #e2e8f0;
+    color: #4a5568;
+}
+.stButton > button:hover {
+    border-color: #5B9BD5;
+    color: #5B9BD5;
+    background-color: #ebf8ff;
+}
+
 /* ── 버튼 컬럼 간격 밀착 ── */
 [data-testid="stHorizontalBlock"] {
-    gap: 0.25rem !important;
+    gap: 0.2rem !important;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -222,12 +241,17 @@ def format_pct(n):
 
 def get_comparison_metrics(df, start_date, end_date):
     """기간 대비 직전 동일 기간 비교 (Period-over-Period)"""
-    if df.empty:
-        return pd.Series(dtype=float), lambda x: 0.0
+    numeric_cols = [c for c in df.columns if pd.api.types.is_numeric_dtype(df[c])]
 
+    if df.empty:
+        empty = pd.Series(0, index=numeric_cols) if numeric_cols else pd.Series(dtype=float)
+        return empty, lambda x: 0.0
+
+    # 1. 현재 기간
     curr_mask = (df['date'].dt.date >= start_date) & (df['date'].dt.date <= end_date)
     curr_df = df[curr_mask]
 
+    # 2. 직전 동일 기간 (동일 일수만큼 앞으로)
     duration = (end_date - start_date).days + 1
     prev_end = start_date - timedelta(days=1)
     prev_start = prev_end - timedelta(days=duration - 1)
@@ -235,7 +259,7 @@ def get_comparison_metrics(df, start_date, end_date):
     prev_mask = (df['date'].dt.date >= prev_start) & (df['date'].dt.date <= prev_end)
     prev_df = df[prev_mask]
 
-    numeric_cols = [c for c in df.columns if pd.api.types.is_numeric_dtype(df[c])]
+    # 3. 집계
     curr_sums = curr_df[numeric_cols].sum()
     prev_sums = prev_df[numeric_cols].sum()
 
@@ -349,38 +373,37 @@ def quick_date_picker(data_min, data_max, prefix, default_mode="이번 달"):
                  today.replace(day=1) - timedelta(days=1)),
     }
 
-    # 기본값 초기화 (최초 1회)
-    if f"{prefix}_from" not in st.session_state:
-        ds, de = presets.get(default_mode, (data_min, data_max))
-        st.session_state[f"{prefix}_from"] = max(ds, data_min)
-        st.session_state[f"{prefix}_to"] = min(de, data_max)
+    # date_input이 사용할 실제 session_state key
+    key_from = f"{prefix}_di_from"
+    key_to = f"{prefix}_di_to"
 
-    # 1행: 버튼 6개 (밀착)
-    btn_cols = st.columns([1, 1, 1, 1, 1, 1, 6], gap="small")
+    # 기본값 초기화 (최초 1회) — date_input key에 직접 설정
+    if key_from not in st.session_state:
+        ds, de = presets.get(default_mode, (today, today))
+        st.session_state[key_from] = max(ds, data_min)
+        st.session_state[key_to] = min(de, data_max)
+
+    # 1행: 버튼 6개 (밀착, 매우 작게)
+    btn_cols = st.columns([1, 1, 1, 1, 1, 1, 8], gap="small")
 
     clicked_preset = None
     for i, (label, (ps, pe)) in enumerate(presets.items()):
         with btn_cols[i]:
-            if st.button(label, key=f"{prefix}_{label}", use_container_width=True):
+            if st.button(label, key=f"{prefix}_btn_{label}", use_container_width=True):
                 clicked_preset = (ps, pe)
 
+    # 버튼 클릭 시 date_input의 session_state key에 직접 기록 후 rerun
     if clicked_preset:
-        st.session_state[f"{prefix}_from"] = max(clicked_preset[0], data_min)
-        st.session_state[f"{prefix}_to"] = min(clicked_preset[1], data_max)
+        st.session_state[key_from] = max(clicked_preset[0], data_min)
+        st.session_state[key_to] = min(clicked_preset[1], data_max)
         st.rerun()
 
-    # 2행: 날짜 입력
-    dc1, dc2, _ = st.columns([1.2, 1.2, 5])
+    # 2행: 날짜 입력 (더 크게)
+    dc1, dc2, _ = st.columns([2, 2, 6])
     with dc1:
-        d_from = st.date_input("시작일", value=st.session_state[f"{prefix}_from"],
-                               min_value=data_min, max_value=data_max, key=f"{prefix}_di_f")
+        d_from = st.date_input("시작일", min_value=data_min, max_value=data_max, key=key_from)
     with dc2:
-        d_to = st.date_input("종료일", value=st.session_state[f"{prefix}_to"],
-                             min_value=data_min, max_value=data_max, key=f"{prefix}_di_t")
-
-    # 수동 입력 시 session_state 동기화
-    st.session_state[f"{prefix}_from"] = d_from
-    st.session_state[f"{prefix}_to"] = d_to
+        d_to = st.date_input("종료일", min_value=data_min, max_value=data_max, key=key_to)
 
     return d_from, d_to
 
