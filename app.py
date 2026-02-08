@@ -242,7 +242,7 @@ PUB_COLORS = ['#6366f1', '#f97316', '#10b981', '#8b5cf6', '#f43f5e', '#14b8a6', 
 # ============================================================
 # 인증 (Streamlit 내장 Google OIDC)
 # ============================================================
-ALLOWED_DOMAIN = "cauly.net"  # 회사 도메인
+ALLOWED_DOMAIN = "fsn.co.kr"  # 회사 도메인
 
 if not st.user.is_logged_in:
     c1, c2, c3 = st.columns([1, 1.5, 1])
