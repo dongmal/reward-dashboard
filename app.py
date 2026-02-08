@@ -377,6 +377,7 @@ def quick_date_picker(data_min, data_max, prefix, default_mode="이번달"):
         "이번달": (today.replace(day=1), today),
         "전월": ((today.replace(day=1) - timedelta(days=1)).replace(day=1),
                  today.replace(day=1) - timedelta(days=1)),
+        "올해": (date(today.year, 1, 1), today),
     }
 
     def clamp(d):
@@ -627,7 +628,7 @@ def render_pointclick_dashboard(df: pd.DataFrame):
     @st.fragment
     def pc_trend_section():
         st.markdown("## 💰 매출 · 마진 추이 (주단위, 월요일 기준)")
-        tf, tt = quick_date_picker(dmin, dmax, "pc_tr", "이번달")
+        tf, tt = quick_date_picker(dmin, dmax, "pc_tr", "올해")
         tdf = f[(f['date'].dt.date >= tf) & (f['date'].dt.date <= tt)]
 
         if tdf.empty:
@@ -906,7 +907,7 @@ def render_cashplay_dashboard(df: pd.DataFrame):
     @st.fragment
     def cp_trend_section():
         st.markdown("## 💰 매출 · 비용 · 마진 추이 (주단위, 월요일 기준)")
-        tf, tt = quick_date_picker(dmin, dmax, "cp_tr", "이번달")
+        tf, tt = quick_date_picker(dmin, dmax, "cp_tr", "올해")
         tdf = df[(df['date'].dt.date >= tf) & (df['date'].dt.date <= tt)]
 
         if not tdf.empty:
