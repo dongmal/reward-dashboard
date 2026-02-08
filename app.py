@@ -57,67 +57,25 @@ div[data-baseweb="tab-highlight"] { background-color: #5B9BD5 !important; height
 hr { margin: 0.8rem 0 !important; opacity: 0.3; }
 
 /* ══════════════════════════════════════
-   메인 버튼 — 작게 + 래퍼 div도 제어
+   segmented_control — 컴팩트하게
    ══════════════════════════════════════ */
-.main .stButton {
-    display: inline-block !important;
-    width: auto !important;
-    min-width: 0 !important;
+div[data-testid="stSegmentedControl"] {
+    max-width: 420px !important;
 }
-.main .stButton > button {
-    font-size: 0.6rem !important;
-    font-weight: 500 !important;
-    padding: 2px 8px !important;
+div[data-testid="stSegmentedControl"] button {
+    font-size: 0.7rem !important;
+    padding: 2px 10px !important;
     min-height: 0 !important;
-    height: 20px !important;
-    line-height: 1 !important;
-    border-radius: 3px !important;
-    background-color: #f1f5f9 !important;
-    border: 1px solid #cbd5e0 !important;
-    color: #475569 !important;
-    width: auto !important;
-    min-width: 0 !important;
-}
-.main .stButton > button:hover {
-    border-color: #5B9BD5 !important;
-    color: #5B9BD5 !important;
-    background-color: #eff6ff !important;
-}
-.main .stButton > button[kind="primary"],
-.main .stButton > button[data-testid="stBaseButton-primary"] {
-    background-color: #5B9BD5 !important;
-    color: #fff !important;
-    border-color: #5B9BD5 !important;
-}
-
-/* ── 사이드바 버튼 정상 ── */
-section[data-testid="stSidebar"] .stButton {
-    display: block !important;
-    width: 100% !important;
-}
-section[data-testid="stSidebar"] .stButton > button {
-    font-size: 0.85rem !important;
-    padding: 8px 16px !important;
-    height: auto !important;
-    min-height: 38px !important;
-    width: 100% !important;
-}
-
-/* ── 다운로드 버튼 ── */
-.main .stDownloadButton > button {
-    font-size: 0.65rem !important;
-    padding: 2px 8px !important;
-    height: 22px !important;
+    height: 26px !important;
 }
 
 /* ══════════════════════════════════════
-   날짜 입력 — 버튼보다 크게 (스왑)
+   날짜 입력 — 선명한 박스
    ══════════════════════════════════════ */
-div[data-testid="stDateInput"] { min-width: 140px !important; max-width: 180px !important; }
+div[data-testid="stDateInput"] { max-width: 160px !important; }
 div[data-testid="stDateInput"] input {
     font-size: 0.8rem !important;
-    padding: 6px 10px !important;
-    height: 32px !important;
+    padding: 5px 8px !important;
     border: 1.5px solid #94a3b8 !important;
     border-radius: 5px !important;
     background: #fff !important;
@@ -135,18 +93,11 @@ div[data-testid="stDateInput"] label {
     }
 }
 
-/* ══════════════════════════════════════
-   컬럼 gap + 패딩 제거
-   ══════════════════════════════════════ */
-.main [data-testid="stHorizontalBlock"] {
-    gap: 2px !important;
-    align-items: end !important;
-}
-.main [data-testid="stColumn"] {
-    padding: 0 !important;
-}
-.main [data-testid="stColumn"] > div {
-    padding: 0 !important;
+/* ── 다운로드 버튼 ── */
+.main .stDownloadButton > button {
+    font-size: 0.7rem !important;
+    padding: 3px 10px !important;
+    height: 28px !important;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -406,7 +357,7 @@ def apply_layout(fig, extra=None):
 # ============================================================
 # 빠른 날짜 선택 — 버튼이 실제로 기간을 변경
 # ============================================================
-def quick_date_picker(data_min, data_max, prefix, default_mode="이번 달"):
+def quick_date_picker(data_min, data_max, prefix, default_mode="이번달"):
     today = date.today()
     yesterday = today - timedelta(days=1)
 
@@ -426,7 +377,9 @@ def quick_date_picker(data_min, data_max, prefix, default_mode="이번 달"):
 
     key_from = f"{prefix}_di_from"
     key_to = f"{prefix}_di_to"
+    key_seg = f"{prefix}_seg"
 
+    # 기본값 초기화
     if key_from not in st.session_state:
         ds, de = presets.get(default_mode, (today, today))
         st.session_state[key_from] = clamp(ds)
@@ -435,25 +388,35 @@ def quick_date_picker(data_min, data_max, prefix, default_mode="이번 달"):
         st.session_state[key_from] = clamp(st.session_state[key_from])
         st.session_state[key_to] = clamp(st.session_state[key_to])
 
-    # 1행: 프리셋 버튼 (활성 프리셋 하이라이트) — 6개 버튼 + 여백
+    # 현재 선택과 매칭되는 프리셋 찾기
     current_from = st.session_state[key_from]
     current_to = st.session_state[key_to]
+    current_preset = None
+    for label, (ps, pe) in presets.items():
+        if clamp(ps) == current_from and clamp(pe) == current_to:
+            current_preset = label
+            break
 
-    btn_cols = st.columns(6, gap="small")
-    clicked_preset = None
-    for i, (label, (ps, pe)) in enumerate(presets.items()):
-        is_active = (clamp(ps) == current_from and clamp(pe) == current_to)
-        with btn_cols[i]:
-            if st.button(label, key=f"{prefix}_btn_{label}",
-                         type="primary" if is_active else "secondary"):
-                clicked_preset = (ps, pe)
+    # segmented_control로 프리셋 선택
+    selected = st.segmented_control(
+        label="기간 선택",
+        options=list(presets.keys()),
+        default=current_preset,
+        key=key_seg,
+        label_visibility="collapsed",
+    )
 
-    if clicked_preset:
-        st.session_state[key_from] = clamp(clicked_preset[0])
-        st.session_state[key_to] = clamp(clicked_preset[1])
-        st.rerun(scope="fragment")
+    # 선택이 변경되면 날짜 업데이트
+    if selected and selected in presets:
+        ps, pe = presets[selected]
+        new_from = clamp(ps)
+        new_to = clamp(pe)
+        if new_from != current_from or new_to != current_to:
+            st.session_state[key_from] = new_from
+            st.session_state[key_to] = new_to
+            st.rerun(scope="fragment")
 
-    # 2행: 시작일/종료일 — 넉넉하게
+    # 날짜 입력
     dc1, dc2, _ = st.columns([2, 2, 6], gap="small")
     with dc1:
         d_from = st.date_input("시작일", min_value=data_min, max_value=data_max, key=key_from)
@@ -490,7 +453,7 @@ def render_pointclick_dashboard(df: pd.DataFrame):
     @st.fragment
     def pc_kpi_section():
         st.markdown("## 📈 핵심 지표")
-        kf, kt = quick_date_picker(dmin, dmax, "pc_kpi", "이번 달")
+        kf, kt = quick_date_picker(dmin, dmax, "pc_kpi", "이번달")
         kdf = f[(f['date'].dt.date >= kf) & (f['date'].dt.date <= kt)]
         curr_sums, prev_sums, get_delta, get_rate_delta = get_comparison_metrics(f, kf, kt)
 
@@ -733,7 +696,7 @@ def render_cashplay_dashboard(df: pd.DataFrame):
     @st.fragment
     def cp_kpi_section():
         st.markdown("## 📈 핵심 지표")
-        kf, kt = quick_date_picker(dmin, dmax, "cp_kpi", "이번 달")
+        kf, kt = quick_date_picker(dmin, dmax, "cp_kpi", "이번달")
         kdf = df[(df['date'].dt.date >= kf) & (df['date'].dt.date <= kt)]
 
         curr_sums, prev_sums, get_delta, get_rate_delta = get_comparison_metrics(df, kf, kt)
