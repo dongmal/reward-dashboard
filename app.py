@@ -24,7 +24,7 @@ st.markdown("""
 /* ── 전역 ── */
 .main .block-container { padding-top: 1rem; max-width: 1440px; }
 
-/* ── 메트릭 카드 — Power BI 스타일 ── */
+/* ── 메트릭 카드 ── */
 div[data-testid="stMetric"] {
     border-radius: 8px;
     padding: 14px 16px;
@@ -35,18 +35,12 @@ div[data-testid="stMetric"]:nth-of-type(3) { border-left-color: #FFC000; }
 div[data-testid="stMetric"]:nth-of-type(4) { border-left-color: #ED7D31; }
 div[data-testid="stMetric"]:nth-of-type(5) { border-left-color: #A855F7; }
 div[data-testid="stMetric"] label {
-    font-size: 0.72rem !important;
-    font-weight: 600 !important;
-    letter-spacing: 0.3px;
-    opacity: 0.65;
-    text-transform: uppercase;
+    font-size: 0.72rem !important; font-weight: 600 !important;
+    letter-spacing: 0.3px; opacity: 0.65; text-transform: uppercase;
 }
 div[data-testid="stMetric"] div[data-testid="stMetricValue"] {
-    font-size: 1.4rem !important;
-    font-weight: 700 !important;
+    font-size: 1.4rem !important; font-weight: 700 !important;
 }
-
-/* ── Light 메트릭 ── */
 @media (prefers-color-scheme: light) {
     div[data-testid="stMetric"] { background: #FFFFFF; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
 }
@@ -54,63 +48,69 @@ div[data-testid="stMetric"] div[data-testid="stMetricValue"] {
     div[data-testid="stMetric"] { background: rgba(255,255,255,0.04); }
 }
 
-/* ── 탭 — 더 크게 ── */
-button[data-baseweb="tab"] {
-    font-weight: 700 !important;
-    font-size: 1rem !important;
-    padding: 12px 24px !important;
-}
+/* ── 탭 ── */
+button[data-baseweb="tab"] { font-weight: 700 !important; font-size: 1rem !important; padding: 12px 24px !important; }
 div[data-baseweb="tab-highlight"] { background-color: #5B9BD5 !important; height: 3px !important; }
 
 /* ── 섹션 헤더 ── */
-.main h2 {
-    font-size: 1.1rem !important;
-    font-weight: 700 !important;
-    margin-top: 0.2rem !important;
-    margin-bottom: 0.3rem !important;
-}
-
-/* ── date_input 정상 크기 ── */
-div[data-testid="stDateInput"] { max-width: 160px; }
-div[data-testid="stDateInput"] input { font-size: 0.85rem !important; padding: 6px 10px !important; }
+.main h2 { font-size: 1.1rem !important; font-weight: 700 !important; margin-top: 0.2rem !important; margin-bottom: 0.3rem !important; }
 
 /* ── 구분선 ── */
 hr { margin: 0.8rem 0 !important; opacity: 0.3; }
 
-/* ── 다운로드 버튼 ── */
-.stDownloadButton button {
-    border-radius: 6px !important;
-    font-size: 0.75rem !important;
-    padding: 4px 12px !important;
-    font-weight: 600 !important;
-    min-height: 0 !important;
-    height: 32px !important;
-    line-height: 1 !important;
-}
-
-/* ── 프리셋 날짜 버튼 (매우 작게, 간격 없이) ── */
-.stButton > button {
+/* ══════════════════════════════════════════
+   프리셋 버튼: 메인 영역 전체 버튼을 소형화
+   ══════════════════════════════════════════ */
+.main .stButton > button {
     border-radius: 4px !important;
-    font-size: 0.6rem !important;
-    padding: 0px 4px !important;
+    font-size: 11px !important;
+    padding: 2px 10px !important;
     font-weight: 500 !important;
     min-height: 0 !important;
-    height: 24px !important;
+    height: 26px !important;
     line-height: 1 !important;
+    width: auto !important;
     background-color: #f7f9fc;
     border: 1px solid #e2e8f0;
     color: #4a5568;
 }
-.stButton > button:hover {
-    border-color: #5B9BD5;
-    color: #5B9BD5;
-    background-color: #ebf8ff;
+.main .stButton > button:hover {
+    border-color: #5B9BD5; color: #5B9BD5; background-color: #ebf8ff;
+}
+/* ── 활성 프리셋 버튼 (primary) ── */
+.main .stButton > button[kind="primary"] {
+    background-color: #5B9BD5 !important;
+    color: white !important;
+    border-color: #5B9BD5 !important;
+    font-size: 11px !important;
+    padding: 2px 10px !important;
+    height: 26px !important;
+    min-height: 0 !important;
 }
 
-/* ── 버튼 컬럼 간격 밀착 ── */
-[data-testid="stHorizontalBlock"] {
-    gap: 0.2rem !important;
+/* ── 다운로드 버튼만 좀 더 크게 ── */
+.main .stDownloadButton > button {
+    font-size: 0.75rem !important;
+    padding: 4px 14px !important;
+    height: 32px !important;
+    font-weight: 600 !important;
 }
+
+/* ── 사이드바 버튼은 정상 크기 유지 ── */
+section[data-testid="stSidebar"] .stButton > button {
+    font-size: 0.85rem !important;
+    padding: 8px 16px !important;
+    height: auto !important;
+    min-height: 38px !important;
+    width: 100% !important;
+}
+
+/* ── 날짜 입력 ── */
+div[data-testid="stDateInput"] { max-width: 150px; }
+div[data-testid="stDateInput"] input { font-size: 0.85rem !important; padding: 5px 8px !important; }
+
+/* ── 컬럼 간격 최소화 ── */
+.main [data-testid="stHorizontalBlock"] { gap: 0.3rem !important; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -245,7 +245,7 @@ def get_comparison_metrics(df, start_date, end_date):
 
     if df.empty:
         empty = pd.Series(0, index=numeric_cols) if numeric_cols else pd.Series(dtype=float)
-        return empty, lambda x: 0.0
+        return empty, pd.Series(dtype=float), lambda x: 0.0, lambda x, y, z: 0.0
 
     # 1. 현재 기간
     curr_mask = (df['date'].dt.date >= start_date) & (df['date'].dt.date <= end_date)
@@ -264,13 +264,24 @@ def get_comparison_metrics(df, start_date, end_date):
     prev_sums = prev_df[numeric_cols].sum()
 
     def get_delta(col):
+        """합산 지표의 변화율 (%)"""
         c = curr_sums.get(col, 0)
         p = prev_sums.get(col, 0)
         if p == 0:
             return 0.0
         return round(((c - p) / p) * 100, 1)
 
-    return curr_sums, get_delta
+    def get_rate_delta(numerator_col, denominator_col, scale=100):
+        """비율 지표의 변화 (현재 비율 - 이전 비율, %p 단위)"""
+        cn = curr_sums.get(numerator_col, 0)
+        cd = curr_sums.get(denominator_col, 0)
+        pn = prev_sums.get(numerator_col, 0)
+        pd_val = prev_sums.get(denominator_col, 0)
+        curr_rate = (cn / cd * scale) if cd else 0
+        prev_rate = (pn / pd_val * scale) if pd_val else 0
+        return round(curr_rate - prev_rate, 1)
+
+    return curr_sums, prev_sums, get_delta, get_rate_delta
 
 def make_weekly(df, date_col='date', group_col=None):
     """주단위 집계 — 월요일 시작"""
@@ -374,40 +385,39 @@ def quick_date_picker(data_min, data_max, prefix, default_mode="이번 달"):
     }
 
     def clamp(d):
-        """날짜를 data_min ~ data_max 범위로 클램핑"""
         return max(data_min, min(d, data_max))
 
-    # date_input이 사용할 실제 session_state key
     key_from = f"{prefix}_di_from"
     key_to = f"{prefix}_di_to"
 
-    # 기본값 초기화 (최초 1회)
     if key_from not in st.session_state:
         ds, de = presets.get(default_mode, (today, today))
         st.session_state[key_from] = clamp(ds)
         st.session_state[key_to] = clamp(de)
     else:
-        # 이미 값이 있어도 범위 밖이면 보정
         st.session_state[key_from] = clamp(st.session_state[key_from])
         st.session_state[key_to] = clamp(st.session_state[key_to])
 
-    # 1행: 버튼 6개 (밀착, 매우 작게)
-    btn_cols = st.columns([1, 1, 1, 1, 1, 1, 8], gap="small")
+    # 1행: 프리셋 버튼 (활성 프리셋 하이라이트)
+    current_from = st.session_state[key_from]
+    current_to = st.session_state[key_to]
 
+    btn_cols = st.columns([1, 1, 1, 1, 1, 1, 10], gap="small")
     clicked_preset = None
     for i, (label, (ps, pe)) in enumerate(presets.items()):
+        is_active = (clamp(ps) == current_from and clamp(pe) == current_to)
         with btn_cols[i]:
-            if st.button(label, key=f"{prefix}_btn_{label}", use_container_width=True):
+            if st.button(label, key=f"{prefix}_btn_{label}",
+                         type="primary" if is_active else "secondary"):
                 clicked_preset = (ps, pe)
 
-    # 버튼 클릭 시 date_input의 session_state key에 직접 기록 후 rerun
     if clicked_preset:
         st.session_state[key_from] = clamp(clicked_preset[0])
         st.session_state[key_to] = clamp(clicked_preset[1])
-        st.rerun()
+        st.rerun(scope="fragment")
 
-    # 2행: 날짜 입력 (더 크게)
-    dc1, dc2, _ = st.columns([2, 2, 6])
+    # 2행: 시작일/종료일
+    dc1, dc2, _ = st.columns([1.5, 1.5, 8], gap="small")
     with dc1:
         d_from = st.date_input("시작일", min_value=data_min, max_value=data_max, key=key_from)
     with dc2:
@@ -440,234 +450,237 @@ def render_pointclick_dashboard(df: pd.DataFrame):
     if sel_ad != '전체': f = f[f['ad_type'] == sel_ad]
     if sel_os != '전체': f = f[f['os'] == sel_os]
 
-    # ── 핵심 지표 ──
-    st.markdown("## 📈 핵심 지표")
-    kf, kt = quick_date_picker(dmin, dmax, "pc_kpi", "이번 달")
-    kdf = f[(f['date'].dt.date >= kf) & (f['date'].dt.date <= kt)]
+    @st.fragment
+    def pc_kpi_section():
+        st.markdown("## 📈 핵심 지표")
+        kf, kt = quick_date_picker(dmin, dmax, "pc_kpi", "이번 달")
+        kdf = f[(f['date'].dt.date >= kf) & (f['date'].dt.date <= kt)]
+        curr_sums, prev_sums, get_delta, get_rate_delta = get_comparison_metrics(f, kf, kt)
 
-    curr_sums, get_delta = get_comparison_metrics(f, kf, kt)
+        if kdf.empty:
+            st.info("선택한 기간에 데이터가 없습니다.")
+        else:
+            tr = curr_sums.get('ad_revenue', 0)
+            tm = curr_sums.get('margin', 0)
+            tc = curr_sums.get('clicks', 0)
+            tv = curr_sums.get('conversions', 0)
+            amr = (tm / tr * 100) if tr else 0
+            acvr = (tv / tc * 100) if tc else 0
 
-    if kdf.empty:
-        st.info("선택한 기간에 데이터가 없습니다.")
-    else:
-        tr = curr_sums.get('ad_revenue', 0)
-        tm = curr_sums.get('margin', 0)
-        tc = curr_sums.get('clicks', 0)
-        tv = curr_sums.get('conversions', 0)
-        amr = (tm / tr * 100) if tr else 0
-        acvr = (tv / tc * 100) if tc else 0
+            m1,m2,m3,m4,m5 = st.columns(5)
+            m1.metric("광고비(매출)", format_won(tr), delta=f"{get_delta('ad_revenue'):+.1f}%")
+            m2.metric("마진", format_won(tm), delta=f"{get_delta('margin'):+.1f}%")
+            m3.metric("마진율", format_pct(amr), delta=f"{get_rate_delta('margin', 'ad_revenue'):+.1f}%p")
+            m4.metric("전환수", format_number(tv), delta=f"{get_delta('conversions'):+.1f}%")
+            m5.metric("평균 CVR", format_pct(acvr), delta=f"{get_rate_delta('conversions', 'clicks'):+.1f}%p")
 
-        m1,m2,m3,m4,m5 = st.columns(5)
-        m1.metric("광고비(매출)", format_won(tr), delta=f"{get_delta('ad_revenue'):+.1f}% 전기비")
-        m2.metric("마진", format_won(tm), delta=f"{get_delta('margin'):+.1f}% 전기비")
-        m3.metric("마진율", format_pct(amr))
-        m4.metric("전환수", format_number(tv), delta=f"{get_delta('conversions'):+.1f}% 전기비")
-        m5.metric("평균 CVR", format_pct(acvr))
+        st.markdown("---")
 
-    st.markdown("---")
+        # ── 상세 분석 (핵심 지표 기간 공유) ──
+        st.markdown("## 🔎 상세 분석")
+        st.caption(f"📅 {kf} ~ {kt}")
 
-    # ── 매출/마진 추이 ──
-    st.markdown("## 💰 매출 · 마진 추이 (주단위, 월요일 기준)")
-    tf, tt = quick_date_picker(dmin, dmax, "pc_tr", "전월")
-    tdf = f[(f['date'].dt.date >= tf) & (f['date'].dt.date <= tt)]
+        if kdf.empty:
+            return
 
-    if tdf.empty:
-        st.info("선택한 기간에 데이터가 없습니다.")
-    else:
-        wp = make_weekly(tdf, group_col='publisher_type')
-        wp['wl'] = wp['week'].apply(week_label)
-        wt = make_weekly(tdf)
-        wt['margin_rate'] = (wt['margin'] / wt['ad_revenue'] * 100).round(1).replace([float('inf'),float('-inf')],0).fillna(0)
-        wt['wl'] = wt['week'].apply(week_label)
-        pubs = sorted(wp['publisher_type'].unique().tolist())
+        tab_conv, tab_adv, tab_media, tab_raw = st.tabs([
+            "🎯 광고타입별 전환", "📊 광고주별", "📡 매체별", "📋 Raw"
+        ])
 
-        cl, cr = st.columns(2)
+        with tab_conv:
+            at = kdf.groupby('ad_type').agg(
+                clicks=('clicks','sum'), conversions=('conversions','sum'),
+                ad_revenue=('ad_revenue','sum'), margin=('margin','sum')
+            ).reset_index()
+            at['cvr'] = (at['conversions']/at['clicks']*100).round(2).replace([float('inf'),float('-inf')],0).fillna(0)
+            at['margin_rate'] = (at['margin']/at['ad_revenue']*100).round(1).replace([float('inf'),float('-inf')],0).fillna(0)
+            at = at.sort_values('ad_revenue', ascending=False)
 
-        with cl:
-            st.markdown("#### 광고비(매출)")
-            fig = go.Figure()
-            for i, p in enumerate(pubs):
-                s = wp[wp['publisher_type']==p].sort_values('week')
-                fig.add_trace(go.Bar(
-                    x=s['wl'], y=s['ad_revenue'], name=p,
-                    marker_color=PUB_COLORS[i%len(PUB_COLORS)],
-                    hovertemplate=f"<b>{p}</b><br>%{{y:,.0f}}원<extra></extra>"
+            cc1, cc2 = st.columns(2)
+            with cc1:
+                fig_a = go.Figure()
+                fig_a.add_trace(go.Bar(x=at['ad_type'], y=at['clicks'], name='클릭수',
+                    marker_color=PASTEL['blue'], opacity=0.55,
+                    hovertemplate="클릭: %{y:,.0f}<extra></extra>"))
+                fig_a.add_trace(go.Bar(x=at['ad_type'], y=at['conversions'], name='전환수',
+                    marker_color=PASTEL['green'], opacity=0.85,
+                    hovertemplate="전환: %{y:,.0f}<extra></extra>"))
+                fig_a.add_trace(go.Scatter(
+                    x=at['ad_type'], y=at['cvr'], name='CVR', mode='lines+markers+text',
+                    text=[f"{v:.1f}%" for v in at['cvr']], textposition='top center',
+                    textfont=dict(size=9, color=PASTEL['red']),
+                    line=dict(color=PASTEL['red'], width=2.5), marker=dict(size=8),
+                    yaxis='y2', hovertemplate="CVR: %{y:.2f}%<extra></extra>"
                 ))
-            apply_layout(fig, dict(barmode='stack', height=380, xaxis_tickangle=-45))
-            set_y_korean_ticks(fig, wp['ad_revenue'].tolist())
-            st.plotly_chart(fig, use_container_width=True)
-
-        with cr:
-            st.markdown("#### 마진 · 마진율")
-            fig2 = go.Figure()
-            for i, p in enumerate(pubs):
-                s = wp[wp['publisher_type']==p].sort_values('week')
-                fig2.add_trace(go.Bar(
-                    x=s['wl'], y=s['margin'], name=p,
-                    marker_color=PUB_COLORS[i%len(PUB_COLORS)], showlegend=False,
-                    hovertemplate=f"<b>{p}</b><br>%{{y:,.0f}}원<extra></extra>"
+                apply_layout(fig_a, dict(
+                    barmode='group', height=380,
+                    yaxis2=dict(title="", overlaying='y', side='right',
+                        range=[0, max(at['cvr'].max()*1.5, 10)], ticksuffix="%",
+                        gridcolor="rgba(0,0,0,0)", tickfont=dict(color=PASTEL['red']))
                 ))
-            fig2.add_trace(go.Scatter(
-                x=wt['wl'], y=wt['margin_rate'], name='마진율',
-                mode='lines+markers+text',
-                text=[f"{v:.1f}%" for v in wt['margin_rate']],
-                textposition='top center', textfont=dict(size=9, color=PASTEL['yellow']),
-                line=dict(color=PASTEL['yellow'], width=2.5),
-                marker=dict(size=6, color=PASTEL['yellow']),
-                yaxis='y2', hovertemplate="마진율: %{y:.1f}%<extra></extra>"
-            ))
-            apply_layout(fig2, dict(
-                barmode='stack', height=380, xaxis_tickangle=-45,
-                yaxis2=dict(title="", overlaying='y', side='right',
-                    range=[0, max(wt['margin_rate'].max()*1.5, 10)],
-                    ticksuffix="%", gridcolor="rgba(0,0,0,0)",
-                    tickfont=dict(size=10, color=PASTEL['yellow']))
-            ))
-            set_y_korean_ticks(fig2, wp['margin'].tolist())
-            st.plotly_chart(fig2, use_container_width=True)
+                st.plotly_chart(fig_a, use_container_width=True)
+            with cc2:
+                d = at.copy()
+                for c in ['clicks','conversions','ad_revenue','margin']:
+                    d[c] = d[c].apply(lambda x: f"{x:,.0f}")
+                d['cvr'] = d['cvr'].apply(lambda x: f"{x:.2f}%")
+                d['margin_rate'] = d['margin_rate'].apply(lambda x: f"{x:.1f}%")
+                st.dataframe(d.rename(columns={
+                    'ad_type':'광고타입','clicks':'클릭수','conversions':'전환수',
+                    'ad_revenue':'광고비(매출)','margin':'마진','cvr':'CVR','margin_rate':'마진율'
+                }), use_container_width=True, hide_index=True, height=380)
 
-    st.markdown("---")
+            st.markdown("##### 일별 광고타입별 전환수")
+            dat = kdf.groupby(['date','ad_type']).agg(conversions=('conversions','sum')).reset_index()
+            fig_d = go.Figure()
+            for a in sorted(kdf['ad_type'].unique()):
+                s = dat[dat['ad_type']==a].sort_values('date')
+                fig_d.add_trace(go.Scatter(x=s['date'], y=s['conversions'], name=a, mode='lines+markers',
+                    hovertemplate=f"<b>{a}</b><br>%{{x|%m/%d}}: %{{y:,.0f}}건<extra></extra>"))
+            apply_layout(fig_d, dict(height=300))
+            st.plotly_chart(fig_d, use_container_width=True)
 
-    # ── 상세 분석 ──
-    st.markdown("## 🔎 상세 분석")
-    st.caption(f"📅 {kf} ~ {kt}")
+        with tab_adv:
+            adv = kdf.groupby('advertiser').agg(
+                ad_revenue=('ad_revenue','sum'), margin=('margin','sum'),
+                conversions=('conversions','sum'), clicks=('clicks','sum'), ad_count=('ad_name','nunique')
+            ).reset_index()
+            adv['margin_rate'] = (adv['margin']/adv['ad_revenue']*100).round(1)
+            adv['cvr'] = (adv['conversions']/adv['clicks']*100).round(1)
+            adv = adv.replace([float('inf'),float('-inf')],0).fillna(0).sort_values('ad_revenue', ascending=False)
 
-    if kdf.empty:
-        return
+            a1, a2 = st.columns(2)
+            with a1:
+                fig_av = px.bar(adv.head(15), x='ad_revenue', y='advertiser', orientation='h',
+                    color='margin_rate', color_continuous_scale='RdYlGn',
+                    labels={'ad_revenue':'광고비(매출)','advertiser':'광고주','margin_rate':'마진율(%)'})
+                fig_av.update_traces(hovertemplate="<b>%{y}</b><br>매출: %{x:,.0f}원<extra></extra>")
+                apply_layout(fig_av, dict(height=420, yaxis=dict(autorange="reversed")))
+                st.plotly_chart(fig_av, use_container_width=True)
+            with a2:
+                da = adv.copy()
+                for c in ['ad_revenue','margin','conversions','clicks','ad_count']:
+                    da[c] = da[c].apply(lambda x: f"{x:,.0f}")
+                da['margin_rate'] = da['margin_rate'].apply(lambda x: f"{x:.1f}%")
+                da['cvr'] = da['cvr'].apply(lambda x: f"{x:.1f}%")
+                st.dataframe(da.rename(columns={
+                    'advertiser':'광고주','ad_revenue':'광고비(매출)','margin':'마진',
+                    'margin_rate':'마진율','conversions':'전환수','clicks':'클릭수','cvr':'CVR','ad_count':'광고수'
+                }), use_container_width=True, hide_index=True, height=420)
 
-    tab_conv, tab_adv, tab_media, tab_raw = st.tabs([
-        "🎯 광고타입별 전환", "📊 광고주별", "📡 매체별", "📋 Raw"
-    ])
+        with tab_media:
+            med = kdf.groupby('media_name').agg(
+                ad_revenue=('ad_revenue','sum'), margin=('margin','sum'),
+                conversions=('conversions','sum'), clicks=('clicks','sum')
+            ).reset_index()
+            med['margin_rate'] = (med['margin']/med['ad_revenue']*100).round(1)
+            med['cvr'] = (med['conversions']/med['clicks']*100).round(1)
+            med = med.replace([float('inf'),float('-inf')],0).fillna(0).sort_values('ad_revenue', ascending=False)
 
-    with tab_conv:
-        at = kdf.groupby('ad_type').agg(
-            clicks=('clicks','sum'), conversions=('conversions','sum'),
-            ad_revenue=('ad_revenue','sum'), margin=('margin','sum')
-        ).reset_index()
-        at['cvr'] = (at['conversions']/at['clicks']*100).round(2).replace([float('inf'),float('-inf')],0).fillna(0)
-        at['margin_rate'] = (at['margin']/at['ad_revenue']*100).round(1).replace([float('inf'),float('-inf')],0).fillna(0)
-        at = at.sort_values('ad_revenue', ascending=False)
+            mc1, mc2 = st.columns(2)
+            with mc1:
+                fig_m = px.treemap(med.head(20), path=['media_name'], values='ad_revenue',
+                    color='margin_rate', color_continuous_scale='RdYlGn')
+                fig_m.update_traces(hovertemplate="<b>%{label}</b><br>매출: %{value:,.0f}원<extra></extra>")
+                fig_m.update_layout(height=420, margin=dict(t=10,b=10), paper_bgcolor="rgba(0,0,0,0)")
+                st.plotly_chart(fig_m, use_container_width=True)
+            with mc2:
+                dm = med.copy()
+                for c in ['ad_revenue','margin','conversions','clicks']:
+                    dm[c] = dm[c].apply(lambda x: f"{x:,.0f}")
+                dm['margin_rate'] = dm['margin_rate'].apply(lambda x: f"{x:.1f}%")
+                dm['cvr'] = dm['cvr'].apply(lambda x: f"{x:.1f}%")
+                st.dataframe(dm.rename(columns={
+                    'media_name':'매체명','ad_revenue':'광고비(매출)','margin':'마진',
+                    'margin_rate':'마진율','conversions':'전환수','clicks':'클릭수','cvr':'CVR'
+                }), use_container_width=True, hide_index=True, height=420)
 
-        cc1, cc2 = st.columns(2)
-        with cc1:
-            fig_a = go.Figure()
-            fig_a.add_trace(go.Bar(x=at['ad_type'], y=at['clicks'], name='클릭수',
-                marker_color=PASTEL['blue'], opacity=0.55,
-                hovertemplate="클릭: %{y:,.0f}<extra></extra>"))
-            fig_a.add_trace(go.Bar(x=at['ad_type'], y=at['conversions'], name='전환수',
-                marker_color=PASTEL['green'], opacity=0.85,
-                hovertemplate="전환: %{y:,.0f}<extra></extra>"))
-            fig_a.add_trace(go.Scatter(
-                x=at['ad_type'], y=at['cvr'], name='CVR', mode='lines+markers+text',
-                text=[f"{v:.1f}%" for v in at['cvr']], textposition='top center',
-                textfont=dict(size=9, color=PASTEL['red']),
-                line=dict(color=PASTEL['red'], width=2.5), marker=dict(size=8),
-                yaxis='y2', hovertemplate="CVR: %{y:.2f}%<extra></extra>"
-            ))
-            apply_layout(fig_a, dict(
-                barmode='group', height=380,
-                yaxis2=dict(title="", overlaying='y', side='right',
-                    range=[0, max(at['cvr'].max()*1.5, 10)], ticksuffix="%",
-                    gridcolor="rgba(0,0,0,0)", tickfont=dict(color=PASTEL['red']))
-            ))
-            st.plotly_chart(fig_a, use_container_width=True)
-        with cc2:
-            d = at.copy()
-            for c in ['clicks','conversions','ad_revenue','margin']:
-                d[c] = d[c].apply(lambda x: f"{x:,.0f}")
-            d['cvr'] = d['cvr'].apply(lambda x: f"{x:.2f}%")
-            d['margin_rate'] = d['margin_rate'].apply(lambda x: f"{x:.1f}%")
-            st.dataframe(d.rename(columns={
-                'ad_type':'광고타입','clicks':'클릭수','conversions':'전환수',
-                'ad_revenue':'광고비(매출)','margin':'마진','cvr':'CVR','margin_rate':'마진율'
-            }), use_container_width=True, hide_index=True, height=380)
+        with tab_raw:
+            raw = kdf.copy().sort_values('date', ascending=False)
+            rd = raw.copy()
+            rd['date'] = rd['date'].dt.strftime('%Y-%m-%d')
+            rd = rd[['date','publisher_type','ad_name','media_name','advertiser',
+                      'os','ad_type','unit_price','clicks','conversions','cvr',
+                      'ad_revenue','media_cost','margin','margin_rate']]
+            for c in ['unit_price','clicks','conversions','ad_revenue','media_cost','margin']:
+                rd[c] = rd[c].apply(lambda x: f"{x:,.0f}")
+            rd['cvr'] = rd['cvr'].apply(lambda x: f"{x:.2f}%")
+            rd['margin_rate'] = rd['margin_rate'].apply(lambda x: f"{x:.1f}%")
+            st.dataframe(rd.rename(columns={
+                'date':'일자','publisher_type':'퍼블리셔','ad_name':'광고명',
+                'media_name':'매체명','advertiser':'광고주','os':'OS',
+                'ad_type':'광고타입','unit_price':'단가','clicks':'클릭수',
+                'conversions':'전환수','cvr':'CVR','ad_revenue':'광고비',
+                'media_cost':'매체비','margin':'마진','margin_rate':'마진율'
+            }), use_container_width=True, hide_index=True, height=500)
+            csv = raw.to_csv(index=False).encode('utf-8-sig')
+            st.download_button("📥 CSV 다운로드", csv,
+                file_name=f"포인트클릭_{kf}_{kt}.csv", mime="text/csv")
 
-        st.markdown("##### 일별 광고타입별 전환수")
-        dat = kdf.groupby(['date','ad_type']).agg(conversions=('conversions','sum')).reset_index()
-        fig_d = go.Figure()
-        for a in sorted(kdf['ad_type'].unique()):
-            s = dat[dat['ad_type']==a].sort_values('date')
-            fig_d.add_trace(go.Scatter(x=s['date'], y=s['conversions'], name=a, mode='lines+markers',
-                hovertemplate=f"<b>{a}</b><br>%{{x|%m/%d}}: %{{y:,.0f}}건<extra></extra>"))
-        apply_layout(fig_d, dict(height=300))
-        st.plotly_chart(fig_d, use_container_width=True)
+    @st.fragment
+    def pc_trend_section():
+        st.markdown("## 💰 매출 · 마진 추이 (주단위, 월요일 기준)")
+        tf, tt = quick_date_picker(dmin, dmax, "pc_tr", "전월")
+        tdf = f[(f['date'].dt.date >= tf) & (f['date'].dt.date <= tt)]
 
-    with tab_adv:
-        adv = kdf.groupby('advertiser').agg(
-            ad_revenue=('ad_revenue','sum'), margin=('margin','sum'),
-            conversions=('conversions','sum'), clicks=('clicks','sum'), ad_count=('ad_name','nunique')
-        ).reset_index()
-        adv['margin_rate'] = (adv['margin']/adv['ad_revenue']*100).round(1)
-        adv['cvr'] = (adv['conversions']/adv['clicks']*100).round(1)
-        adv = adv.replace([float('inf'),float('-inf')],0).fillna(0).sort_values('ad_revenue', ascending=False)
+        if tdf.empty:
+            st.info("선택한 기간에 데이터가 없습니다.")
+        else:
+            wp = make_weekly(tdf, group_col='publisher_type')
+            wp['wl'] = wp['week'].apply(week_label)
+            wt = make_weekly(tdf)
+            wt['margin_rate'] = (wt['margin'] / wt['ad_revenue'] * 100).round(1).replace([float('inf'),float('-inf')],0).fillna(0)
+            wt['wl'] = wt['week'].apply(week_label)
+            pubs = sorted(wp['publisher_type'].unique().tolist())
 
-        a1, a2 = st.columns(2)
-        with a1:
-            fig_av = px.bar(adv.head(15), x='ad_revenue', y='advertiser', orientation='h',
-                color='margin_rate', color_continuous_scale='RdYlGn',
-                labels={'ad_revenue':'광고비(매출)','advertiser':'광고주','margin_rate':'마진율(%)'})
-            fig_av.update_traces(hovertemplate="<b>%{y}</b><br>매출: %{x:,.0f}원<extra></extra>")
-            apply_layout(fig_av, dict(height=420, yaxis=dict(autorange="reversed")))
-            st.plotly_chart(fig_av, use_container_width=True)
-        with a2:
-            da = adv.copy()
-            for c in ['ad_revenue','margin','conversions','clicks','ad_count']:
-                da[c] = da[c].apply(lambda x: f"{x:,.0f}")
-            da['margin_rate'] = da['margin_rate'].apply(lambda x: f"{x:.1f}%")
-            da['cvr'] = da['cvr'].apply(lambda x: f"{x:.1f}%")
-            st.dataframe(da.rename(columns={
-                'advertiser':'광고주','ad_revenue':'광고비(매출)','margin':'마진',
-                'margin_rate':'마진율','conversions':'전환수','clicks':'클릭수','cvr':'CVR','ad_count':'광고수'
-            }), use_container_width=True, hide_index=True, height=420)
+            cl, cr = st.columns(2)
 
-    with tab_media:
-        med = kdf.groupby('media_name').agg(
-            ad_revenue=('ad_revenue','sum'), margin=('margin','sum'),
-            conversions=('conversions','sum'), clicks=('clicks','sum')
-        ).reset_index()
-        med['margin_rate'] = (med['margin']/med['ad_revenue']*100).round(1)
-        med['cvr'] = (med['conversions']/med['clicks']*100).round(1)
-        med = med.replace([float('inf'),float('-inf')],0).fillna(0).sort_values('ad_revenue', ascending=False)
+            with cl:
+                st.markdown("#### 광고비(매출)")
+                fig = go.Figure()
+                for i, p in enumerate(pubs):
+                    s = wp[wp['publisher_type']==p].sort_values('week')
+                    fig.add_trace(go.Bar(
+                        x=s['wl'], y=s['ad_revenue'], name=p,
+                        marker_color=PUB_COLORS[i%len(PUB_COLORS)],
+                        hovertemplate=f"<b>{p}</b><br>%{{y:,.0f}}원<extra></extra>"
+                    ))
+                apply_layout(fig, dict(barmode='stack', height=380, xaxis_tickangle=-45))
+                set_y_korean_ticks(fig, wp['ad_revenue'].tolist())
+                st.plotly_chart(fig, use_container_width=True)
 
-        mc1, mc2 = st.columns(2)
-        with mc1:
-            fig_m = px.treemap(med.head(20), path=['media_name'], values='ad_revenue',
-                color='margin_rate', color_continuous_scale='RdYlGn')
-            fig_m.update_traces(hovertemplate="<b>%{label}</b><br>매출: %{value:,.0f}원<extra></extra>")
-            fig_m.update_layout(height=420, margin=dict(t=10,b=10), paper_bgcolor="rgba(0,0,0,0)")
-            st.plotly_chart(fig_m, use_container_width=True)
-        with mc2:
-            dm = med.copy()
-            for c in ['ad_revenue','margin','conversions','clicks']:
-                dm[c] = dm[c].apply(lambda x: f"{x:,.0f}")
-            dm['margin_rate'] = dm['margin_rate'].apply(lambda x: f"{x:.1f}%")
-            dm['cvr'] = dm['cvr'].apply(lambda x: f"{x:.1f}%")
-            st.dataframe(dm.rename(columns={
-                'media_name':'매체명','ad_revenue':'광고비(매출)','margin':'마진',
-                'margin_rate':'마진율','conversions':'전환수','clicks':'클릭수','cvr':'CVR'
-            }), use_container_width=True, hide_index=True, height=420)
+            with cr:
+                st.markdown("#### 마진 · 마진율")
+                fig2 = go.Figure()
+                for i, p in enumerate(pubs):
+                    s = wp[wp['publisher_type']==p].sort_values('week')
+                    fig2.add_trace(go.Bar(
+                        x=s['wl'], y=s['margin'], name=p,
+                        marker_color=PUB_COLORS[i%len(PUB_COLORS)], showlegend=False,
+                        hovertemplate=f"<b>{p}</b><br>%{{y:,.0f}}원<extra></extra>"
+                    ))
+                fig2.add_trace(go.Scatter(
+                    x=wt['wl'], y=wt['margin_rate'], name='마진율',
+                    mode='lines+markers+text',
+                    text=[f"{v:.1f}%" for v in wt['margin_rate']],
+                    textposition='top center', textfont=dict(size=9, color=PASTEL['yellow']),
+                    line=dict(color=PASTEL['yellow'], width=2.5),
+                    marker=dict(size=6, color=PASTEL['yellow']),
+                    yaxis='y2', hovertemplate="마진율: %{y:.1f}%<extra></extra>"
+                ))
+                apply_layout(fig2, dict(
+                    barmode='stack', height=380, xaxis_tickangle=-45,
+                    yaxis2=dict(title="", overlaying='y', side='right',
+                        range=[0, max(wt['margin_rate'].max()*1.5, 10)],
+                        ticksuffix="%", gridcolor="rgba(0,0,0,0)",
+                        tickfont=dict(size=10, color=PASTEL['yellow']))
+                ))
+                set_y_korean_ticks(fig2, wp['margin'].tolist())
+                st.plotly_chart(fig2, use_container_width=True)
 
-    with tab_raw:
-        raw = kdf.copy().sort_values('date', ascending=False)
-        rd = raw.copy()
-        rd['date'] = rd['date'].dt.strftime('%Y-%m-%d')
-        rd = rd[['date','publisher_type','ad_name','media_name','advertiser',
-                  'os','ad_type','unit_price','clicks','conversions','cvr',
-                  'ad_revenue','media_cost','margin','margin_rate']]
-        for c in ['unit_price','clicks','conversions','ad_revenue','media_cost','margin']:
-            rd[c] = rd[c].apply(lambda x: f"{x:,.0f}")
-        rd['cvr'] = rd['cvr'].apply(lambda x: f"{x:.2f}%")
-        rd['margin_rate'] = rd['margin_rate'].apply(lambda x: f"{x:.1f}%")
-        st.dataframe(rd.rename(columns={
-            'date':'일자','publisher_type':'퍼블리셔','ad_name':'광고명',
-            'media_name':'매체명','advertiser':'광고주','os':'OS',
-            'ad_type':'광고타입','unit_price':'단가','clicks':'클릭수',
-            'conversions':'전환수','cvr':'CVR','ad_revenue':'광고비',
-            'media_cost':'매체비','margin':'마진','margin_rate':'마진율'
-        }), use_container_width=True, hide_index=True, height=500)
-        csv = raw.to_csv(index=False).encode('utf-8-sig')
-        st.download_button("📥 CSV 다운로드", csv,
-            file_name=f"포인트클릭_{kf}_{kt}.csv", mime="text/csv")
+    # 실행
+    pc_kpi_section()
+    pc_trend_section()
 
 
 # ============================================================
@@ -685,7 +698,7 @@ def render_cashplay_dashboard(df: pd.DataFrame):
     kf, kt = quick_date_picker(dmin, dmax, "cp_kpi", "이번 달")
     kdf = df[(df['date'].dt.date >= kf) & (df['date'].dt.date <= kt)]
 
-    curr_sums, get_delta = get_comparison_metrics(df, kf, kt)
+    curr_sums, prev_sums, get_delta, get_rate_delta = get_comparison_metrics(df, kf, kt)
 
     if kdf.empty:
         st.info("선택한 기간에 데이터가 없습니다.")
@@ -698,11 +711,11 @@ def render_cashplay_dashboard(df: pd.DataFrame):
         apcr = (tpc/tr*100) if tr else 0
 
         m1,m2,m3,m4,m5 = st.columns(5)
-        m1.metric("총 매출", format_won(tr), delta=f"{get_delta('revenue_total'):+.1f}% 전기비")
-        m2.metric("매입(리워드)", format_won(tc))
-        m3.metric("마진", format_won(tm), delta=f"{get_delta('margin'):+.1f}% 전기비")
-        m4.metric("마진율", format_pct(amr))
-        m5.metric("🌟 자사 비중", format_pct(apcr))
+        m1.metric("총 매출", format_won(tr), delta=f"{get_delta('revenue_total'):+.1f}%")
+        m2.metric("매입(리워드)", format_won(tc), delta=f"{get_delta('cost_total'):+.1f}%")
+        m3.metric("마진", format_won(tm), delta=f"{get_delta('margin'):+.1f}%")
+        m4.metric("마진율", format_pct(amr), delta=f"{get_rate_delta('margin', 'revenue_total'):+.1f}%p")
+        m5.metric("🌟 자사 비중", format_pct(apcr), delta=f"{get_rate_delta('pointclick_revenue', 'revenue_total'):+.1f}%p")
 
     st.markdown("---")
 
