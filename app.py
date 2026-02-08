@@ -72,7 +72,7 @@ div[data-testid="stSegmentedControl"] button {
 /* ══════════════════════════════════════
    날짜 입력 — 선명한 박스
    ══════════════════════════════════════ */
-div[data-testid="stDateInput"] { max-width: 160px !important; }
+div[data-testid="stDateInput"] { max-width: 130px !important; }
 div[data-testid="stDateInput"] input {
     font-size: 0.8rem !important;
     padding: 5px 8px !important;
@@ -91,6 +91,13 @@ div[data-testid="stDateInput"] label {
     div[data-testid="stDateInput"] input {
         background: #1e293b !important; border-color: #475569 !important; color: #e2e8f0 !important;
     }
+}
+
+/* ── 컬럼: flex-grow 제거해서 내용물 크기에 맞춤 ── */
+.main [data-testid="stColumn"]:has(div[data-testid="stDateInput"]) {
+    flex: 0 0 auto !important;
+    width: auto !important;
+    min-width: 0 !important;
 }
 
 /* ── 다운로드 버튼 ── */
@@ -416,8 +423,8 @@ def quick_date_picker(data_min, data_max, prefix, default_mode="이번달"):
             st.session_state[key_to] = new_to
             st.rerun(scope="fragment")
 
-    # 날짜 입력
-    dc1, dc2, _ = st.columns([2, 2, 6], gap="small")
+    # 날짜 입력 — 밀착
+    dc1, dc2, _ = st.columns([1, 1, 8], gap="small")
     with dc1:
         d_from = st.date_input("시작일", min_value=data_min, max_value=data_max, key=key_from)
     with dc2:
