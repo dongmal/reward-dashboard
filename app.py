@@ -441,7 +441,7 @@ def render_cashplay_dashboard(df: pd.DataFrame):
         st.plotly_chart(fig_w, use_container_width=True)
 
 # ============================================================
-# 메인
+# 메인 (수정됨: 실제 데이터 로딩 활성화)
 # ============================================================
 def main():
     st.title("📊 E프로젝트 대시보드")
@@ -454,19 +454,17 @@ def main():
     tab_pc, tab_cp = st.tabs(["🟢 PointClick", "🔵 CashPlay"])
 
     with tab_pc:
-        # 실제 데이터 로딩 (secrets가 설정되어 있어야 함)
-        # pc_raw = load_sheet_data(SHEET_NAMES["포인트클릭"]["db"])
-        # pc_df = load_pointclick(pc_raw)
-        
-        # 테스트용 빈 데이터프레임 (실행 확인용)
-        # 실제 사용시는 위 주석을 풀고 아래 줄을 지우세요.
-        pc_df = pd.DataFrame() 
+        # [수정] 주석 해제하여 실제 데이터 로딩
+        with st.spinner("포인트클릭 데이터 로딩 중..."):
+            pc_raw = load_sheet_data(SHEET_NAMES["포인트클릭"]["db"])
+            pc_df = load_pointclick(pc_raw)
         render_pointclick_dashboard(pc_df)
 
     with tab_cp:
-        # cp_raw = load_sheet_data(SHEET_NAMES["캐시플레이"]["db"])
-        # cp_df = load_cashplay(cp_raw)
-        cp_df = pd.DataFrame()
+        # [수정] 주석 해제하여 실제 데이터 로딩
+        with st.spinner("캐시플레이 데이터 로딩 중..."):
+            cp_raw = load_sheet_data(SHEET_NAMES["캐시플레이"]["db"])
+            cp_df = load_cashplay(cp_raw)
         render_cashplay_dashboard(cp_df)
 
 if __name__ == "__main__":
