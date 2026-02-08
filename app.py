@@ -80,9 +80,12 @@ hr { margin: 0.8rem 0 !important; opacity: 0.3; }
 /* ── 다운로드/일반 버튼 ── */
 .stDownloadButton button, .stButton > button {
     border-radius: 6px !important;
-    font-size: 0.75rem !important;
-    padding: 2px 10px !important;
+    font-size: 0.7rem !important;
+    padding: 1px 8px !important;
     font-weight: 600 !important;
+    min-height: 0 !important;
+    height: 32px !important;
+    line-height: 1 !important;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -313,39 +316,44 @@ def quick_date_picker(data_min, data_max, prefix, default_mode="이번 달"):
     presets = {
         "오늘": (today, today),
         "어제": (yesterday, yesterday),
-        "이번 주": (today - timedelta(days=today.weekday()), today),
+        "이번주": (today - timedelta(days=today.weekday()), today),
         "전주": (today - timedelta(days=today.weekday() + 7),
                  today - timedelta(days=today.weekday() + 1)),
-        "이번 달": (today.replace(day=1), today),
+        "이번달": (today.replace(day=1), today),
         "전월": ((today.replace(day=1) - timedelta(days=1)).replace(day=1),
                  today.replace(day=1) - timedelta(days=1)),
     }
 
-    # 버튼 클릭 → session_state에 기간 저장
-    btn_cols = st.columns(len(presets) + 2)
-    for i, (label, (ps, pe)) in enumerate(presets.items()):
-        with btn_cols[i]:
-            if st.button(label, key=f"{prefix}_{label}", use_container_width=True):
-                st.session_state[f"{prefix}_from"] = max(ps, data_min)
-                st.session_state[f"{prefix}_to"] = min(pe, data_max)
-
-    # 기본값 설정
+    # 기본값 초기화 (최초 1회)
     if f"{prefix}_from" not in st.session_state:
         ds, de = presets.get(default_mode, (data_min, data_max))
         st.session_state[f"{prefix}_from"] = max(ds, data_min)
         st.session_state[f"{prefix}_to"] = min(de, data_max)
 
-    # 날짜 입력 — 버튼 옆 나머지 칸에 배치
-    with btn_cols[-2]:
-        d_from = st.date_input("시작", value=st.session_state[f"{prefix}_from"],
-                               min_value=data_min, max_value=data_max, key=f"{prefix}_di_f",
-                               label_visibility="collapsed")
-    with btn_cols[-1]:
-        d_to = st.date_input("종료", value=st.session_state[f"{prefix}_to"],
-                             min_value=data_min, max_value=data_max, key=f"{prefix}_di_t",
-                             label_visibility="collapsed")
+    # 버튼 + 날짜 입력을 한 줄에 배치
+    cols = st.columns([1, 1, 1, 1, 1, 1, 0.3, 2, 2])
 
-    # 날짜 입력 변경 시 session_state 동기화
+    # 버튼 6개
+    need_rerun = False
+    for i, (label, (ps, pe)) in enumerate(presets.items()):
+        with cols[i]:
+            if st.button(label, key=f"{prefix}_{label}", use_container_width=True):
+                st.session_state[f"{prefix}_from"] = max(ps, data_min)
+                st.session_state[f"{prefix}_to"] = min(pe, data_max)
+                need_rerun = True
+
+    if need_rerun:
+        st.rerun()
+
+    # 날짜 입력
+    with cols[7]:
+        d_from = st.date_input("시작일", value=st.session_state[f"{prefix}_from"],
+                               min_value=data_min, max_value=data_max, key=f"{prefix}_di_f")
+    with cols[8]:
+        d_to = st.date_input("종료일", value=st.session_state[f"{prefix}_to"],
+                             min_value=data_min, max_value=data_max, key=f"{prefix}_di_t")
+
+    # 수동 입력 시 session_state 동기화
     st.session_state[f"{prefix}_from"] = d_from
     st.session_state[f"{prefix}_to"] = d_to
 
