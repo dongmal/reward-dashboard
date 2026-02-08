@@ -57,47 +57,50 @@ div[data-baseweb="tab-highlight"] { background-color: #5B9BD5 !important; height
 hr { margin: 0.8rem 0 !important; opacity: 0.3; }
 
 /* ══════════════════════════════════════
-   메인 버튼 — all:unset 으로 Streamlit 기본 스타일 완전 제거
+   메인 버튼 — 작게 + 래퍼 div도 제어
    ══════════════════════════════════════ */
+.main .stButton {
+    display: inline-block !important;
+    width: auto !important;
+    min-width: 0 !important;
+}
 .main .stButton > button {
-    all: unset !important;
-    box-sizing: border-box !important;
-    display: inline-flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    cursor: pointer !important;
-    border-radius: 3px !important;
     font-size: 0.6rem !important;
     font-weight: 500 !important;
-    padding: 1px 6px !important;
-    height: 18px !important;
+    padding: 2px 8px !important;
+    min-height: 0 !important;
+    height: 20px !important;
     line-height: 1 !important;
-    white-space: nowrap !important;
-    background: #f1f5f9 !important;
+    border-radius: 3px !important;
+    background-color: #f1f5f9 !important;
     border: 1px solid #cbd5e0 !important;
     color: #475569 !important;
+    width: auto !important;
+    min-width: 0 !important;
 }
 .main .stButton > button:hover {
     border-color: #5B9BD5 !important;
     color: #5B9BD5 !important;
-    background: #eff6ff !important;
+    background-color: #eff6ff !important;
 }
-/* primary (활성 프리셋) */
 .main .stButton > button[kind="primary"],
 .main .stButton > button[data-testid="stBaseButton-primary"] {
-    background: #5B9BD5 !important;
+    background-color: #5B9BD5 !important;
     color: #fff !important;
     border-color: #5B9BD5 !important;
 }
 
-/* ── 사이드바 버튼 정상 복원 ── */
+/* ── 사이드바 버튼 정상 ── */
+section[data-testid="stSidebar"] .stButton {
+    display: block !important;
+    width: 100% !important;
+}
 section[data-testid="stSidebar"] .stButton > button {
-    all: revert !important;
     font-size: 0.85rem !important;
     padding: 8px 16px !important;
+    height: auto !important;
     min-height: 38px !important;
     width: 100% !important;
-    cursor: pointer !important;
 }
 
 /* ── 다운로드 버튼 ── */
@@ -108,22 +111,23 @@ section[data-testid="stSidebar"] .stButton > button {
 }
 
 /* ══════════════════════════════════════
-   날짜 입력 — 선명한 박스
+   날짜 입력 — 버튼보다 크게 (스왑)
    ══════════════════════════════════════ */
-div[data-testid="stDateInput"] { max-width: 120px !important; }
+div[data-testid="stDateInput"] { min-width: 140px !important; max-width: 180px !important; }
 div[data-testid="stDateInput"] input {
-    font-size: 0.7rem !important;
-    padding: 3px 5px !important;
+    font-size: 0.8rem !important;
+    padding: 6px 10px !important;
+    height: 32px !important;
     border: 1.5px solid #94a3b8 !important;
-    border-radius: 4px !important;
+    border-radius: 5px !important;
     background: #fff !important;
     color: #1e293b !important;
 }
 div[data-testid="stDateInput"] input:hover { border-color: #5B9BD5 !important; }
 div[data-testid="stDateInput"] label {
-    font-size: 0.55rem !important;
-    margin-bottom: 0px !important;
-    opacity: 0.6;
+    font-size: 0.65rem !important;
+    margin-bottom: 1px !important;
+    opacity: 0.7;
 }
 @media (prefers-color-scheme: dark) {
     div[data-testid="stDateInput"] input {
@@ -132,18 +136,17 @@ div[data-testid="stDateInput"] label {
 }
 
 /* ══════════════════════════════════════
-   핵심: 컬럼 gap + 패딩 완전 제거
+   컬럼 gap + 패딩 제거
    ══════════════════════════════════════ */
 .main [data-testid="stHorizontalBlock"] {
     gap: 2px !important;
+    align-items: end !important;
 }
 .main [data-testid="stColumn"] {
-    padding-left: 0px !important;
-    padding-right: 0px !important;
+    padding: 0 !important;
 }
 .main [data-testid="stColumn"] > div {
-    padding-left: 0px !important;
-    padding-right: 0px !important;
+    padding: 0 !important;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -432,11 +435,11 @@ def quick_date_picker(data_min, data_max, prefix, default_mode="이번 달"):
         st.session_state[key_from] = clamp(st.session_state[key_from])
         st.session_state[key_to] = clamp(st.session_state[key_to])
 
-    # 1행: 프리셋 버튼 (활성 프리셋 하이라이트)
+    # 1행: 프리셋 버튼 (활성 프리셋 하이라이트) — 6개 버튼 + 여백
     current_from = st.session_state[key_from]
     current_to = st.session_state[key_to]
 
-    btn_cols = st.columns([1, 1, 1, 1, 1, 1, 10], gap="small")
+    btn_cols = st.columns(6, gap="small")
     clicked_preset = None
     for i, (label, (ps, pe)) in enumerate(presets.items()):
         is_active = (clamp(ps) == current_from and clamp(pe) == current_to)
@@ -450,8 +453,8 @@ def quick_date_picker(data_min, data_max, prefix, default_mode="이번 달"):
         st.session_state[key_to] = clamp(clicked_preset[1])
         st.rerun(scope="fragment")
 
-    # 2행: 시작일/종료일
-    dc1, dc2, _ = st.columns([1.5, 1.5, 8], gap="small")
+    # 2행: 시작일/종료일 — 넉넉하게
+    dc1, dc2, _ = st.columns([2, 2, 6], gap="small")
     with dc1:
         d_from = st.date_input("시작일", min_value=data_min, max_value=data_max, key=key_from)
     with dc2:
@@ -654,7 +657,7 @@ def render_pointclick_dashboard(df: pd.DataFrame):
     @st.fragment
     def pc_trend_section():
         st.markdown("## 💰 매출 · 마진 추이 (주단위, 월요일 기준)")
-        tf, tt = quick_date_picker(dmin, dmax, "pc_tr", "전월")
+        tf, tt = quick_date_picker(dmin, dmax, "pc_tr", "이번달")
         tdf = f[(f['date'].dt.date >= tf) & (f['date'].dt.date <= tt)]
 
         if tdf.empty:
@@ -933,7 +936,7 @@ def render_cashplay_dashboard(df: pd.DataFrame):
     @st.fragment
     def cp_trend_section():
         st.markdown("## 💰 매출 · 비용 · 마진 추이 (주단위, 월요일 기준)")
-        tf, tt = quick_date_picker(dmin, dmax, "cp_tr", "전월")
+        tf, tt = quick_date_picker(dmin, dmax, "cp_tr", "이번달")
         tdf = df[(df['date'].dt.date >= tf) & (df['date'].dt.date <= tt)]
 
         if not tdf.empty:
