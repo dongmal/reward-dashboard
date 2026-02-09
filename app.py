@@ -7,13 +7,11 @@ from google.oauth2.service_account import Credentials
 from datetime import datetime, timedelta, date
 import numpy as np
 from functools import wraps
-# GA4 연동 추가 (이 3줄만 추가)
+
+# GA4 연동
 from google.analytics.data_v1beta import BetaAnalyticsDataClient
 from google.analytics.data_v1beta.types import DateRange, Dimension, Metric, RunReportRequest
 
-# ============================================================
-# 페이지 설정
-# ============================================================
 st.set_page_config(
     page_title="E프로젝트 대시보드",
     page_icon="📊",
@@ -21,9 +19,6 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# ============================================================
-# CSS – Power BI 스타일 + Light/Dark 대응
-# ============================================================
 st.markdown("""
 <style>
 .main .block-container { padding-top: 1rem; max-width: 1440px; }
@@ -216,9 +211,43 @@ def load_pointclick(df: pd.DataFrame) -> pd.DataFrame:
 def load_cashplay(df: pd.DataFrame) -> pd.DataFrame:
     if df.empty:
         return df
+    
+    col_map = {
+        '날짜': 'date',
+        '리워드(원)_유상': 'reward_paid', '리워드(원)_무상': 'reward_free', '리워드(원)_합계': 'reward_total',
+        '게임(원)_직거래': 'game_direct', '게임(원)_DSP': 'game_dsp', '게임(원)_RS': 'game_rs',
+        '게임(원)_인수': 'game_acquisition', '게임(원)_합계': 'game_total',
+        '게더링(원)_포인트클릭': 'gathering_pointclick',
+        'IAA(원)_레벨플레이': 'iaa_levelplay', 'IAA(원)_애드웨일': 'iaa_adwhale',
+        'IAA(원)_허블': 'iaa_hubble', 'IAA(원)_합계': 'iaa_total',
+        '오퍼월(원)_애드팝콘': 'offerwall_adpopcorn', '오퍼월(원)_포인트클릭': 'offerwall_pointclick',
+        '오퍼월(원)_아이브': 'offerwall_ive', '오퍼월(원)_애드포러스': 'offerwall_adforus',
+        '오퍼월(원)_애디슨': 'offerwall_addison', '오퍼월(원)_애드조': 'offerwall_adjo',
+        '오퍼월(원)_합계': 'offerwall_total'
+    }
+    df = df.rename(columns=col_map)
+    df['date'] = pd.to_datetime(df['date'], errors='coerce')
+    
+    if df['date'].isna().all():
+        st.error("⚠️ 유효한 날짜 데이터가 없습니다.")
+        return pd.DataFrame()
+    
+    for c in [x for x in df.columns if x != 'date']:
+        df[c] = df[c].replace('-', 0)
+        df[c] = pd.to_numeric(df[c], errors='coerce').fillna(0)
+    
+    df = df[df['date'].notna()].copy()
+    df['revenue_total'] = df['game_total'] + df['gathering_pointclick'] + df['iaa_total'] + df['offerwall_total']
+    df['cost_total'] = df['reward_total']
+    df['margin'] = df['revenue_total'] - df['cost_total']
+    df['margin_rate'] = df.apply(lambda row: safe_divide(row['margin'], row['revenue_total'], default=0, scale=100), axis=1)
+    df['pointclick_revenue'] = df['gathering_pointclick'] + df['offerwall_pointclick']
+    df['pointclick_ratio'] = df.apply(lambda row: safe_divide(row['pointclick_revenue'], row['revenue_total'], default=0, scale=100), axis=1)
+    
+    return df
+
 @st.cache_data(ttl=600, show_spinner=False)
 def load_ga4_data(property_id: str, start_date: str = "30daysAgo", end_date: str = "today") -> pd.DataFrame:
-    """GA4 데이터 로드"""
     try:
         credentials = Credentials.from_service_account_info(
             st.secrets["gcp_service_account"],
@@ -258,40 +287,7 @@ def load_ga4_data(property_id: str, start_date: str = "30daysAgo", end_date: str
     
     except Exception as e:
         st.error(f"❌ GA4 데이터 로드 오류: {e}")
-        return pd.DataFrame()   
-    col_map = {
-        '날짜': 'date',
-        '리워드(원)_유상': 'reward_paid', '리워드(원)_무상': 'reward_free', '리워드(원)_합계': 'reward_total',
-        '게임(원)_직거래': 'game_direct', '게임(원)_DSP': 'game_dsp', '게임(원)_RS': 'game_rs',
-        '게임(원)_인수': 'game_acquisition', '게임(원)_합계': 'game_total',
-        '게더링(원)_포인트클릭': 'gathering_pointclick',
-        'IAA(원)_레벨플레이': 'iaa_levelplay', 'IAA(원)_애드웨일': 'iaa_adwhale',
-        'IAA(원)_허블': 'iaa_hubble', 'IAA(원)_합계': 'iaa_total',
-        '오퍼월(원)_애드팝콘': 'offerwall_adpopcorn', '오퍼월(원)_포인트클릭': 'offerwall_pointclick',
-        '오퍼월(원)_아이브': 'offerwall_ive', '오퍼월(원)_애드포러스': 'offerwall_adforus',
-        '오퍼월(원)_애디슨': 'offerwall_addison', '오퍼월(원)_애드조': 'offerwall_adjo',
-        '오퍼월(원)_합계': 'offerwall_total'
-    }
-    df = df.rename(columns=col_map)
-    df['date'] = pd.to_datetime(df['date'], errors='coerce')
-    
-    if df['date'].isna().all():
-        st.error("⚠️ 유효한 날짜 데이터가 없습니다.")
         return pd.DataFrame()
-    
-    for c in [x for x in df.columns if x != 'date']:
-        df[c] = df[c].replace('-', 0)
-        df[c] = pd.to_numeric(df[c], errors='coerce').fillna(0)
-    
-    df = df[df['date'].notna()].copy()
-    df['revenue_total'] = df['game_total'] + df['gathering_pointclick'] + df['iaa_total'] + df['offerwall_total']
-    df['cost_total'] = df['reward_total']
-    df['margin'] = df['revenue_total'] - df['cost_total']
-    df['margin_rate'] = df.apply(lambda row: safe_divide(row['margin'], row['revenue_total'], default=0, scale=100), axis=1)
-    df['pointclick_revenue'] = df['gathering_pointclick'] + df['offerwall_pointclick']
-    df['pointclick_ratio'] = df.apply(lambda row: safe_divide(row['pointclick_revenue'], row['revenue_total'], default=0, scale=100), axis=1)
-    
-    return df
 
 def format_won(n):
     if pd.isna(n):
@@ -753,73 +749,7 @@ def render_cashplay_dashboard(df: pd.DataFrame):
     if df.empty:
         st.warning("캐시플레이 데이터가 없습니다.")
         return
-def render_ga4_dashboard():
-    """GA4 대시보드 렌더링"""
-    st.markdown("## 📈 GA4 분석")
-    
-    # 속성 선택
-    property_option = st.radio(
-        "GA4 속성 선택",
-        ["포인트클릭", "캐시플레이"],
-        horizontal=True,
-        key="ga4_property_selector"
-    )
-    
-    if property_option == "포인트클릭":
-        property_id = st.secrets["ga4_property_id_pointclick"]
-    else:
-        property_id = st.secrets["ga4_property_id_cashplay"]
-    
-    # 데이터 로드
-    with st.spinner(f"{property_option} GA4 데이터 로딩 중..."):
-        df = load_ga4_data(property_id, start_date="30daysAgo", end_date="today")
-    
-    if df.empty:
-        st.warning("데이터가 없습니다.")
-        return
-    
-    # 기본 지표
-    st.markdown("### 📊 최근 30일 요약")
-    col1, col2, col3 = st.columns(3)
-    
-    total_sessions = df["sessions"].sum()
-    total_users = df["total_users"].sum()
-    total_new_users = df["new_users"].sum()
-    
-    col1.metric("총 세션", format_number(total_sessions))
-    col2.metric("총 사용자", format_number(total_users))
-    col3.metric("신규 사용자", format_number(total_new_users))
-    
-    st.markdown("---")
-    
-    # 일별 추이
-    st.markdown("### 📈 일별 세션 추이")
-    fig = go.Figure()
-    fig.add_trace(go.Scatter(
-        x=df["date"],
-        y=df["sessions"],
-        mode="lines+markers",
-        name="세션",
-        line=dict(color=PASTEL['blue'], width=2.5),
-        marker=dict(size=6),
-        hovertemplate="<b>%{x|%Y-%m-%d}</b><br>세션: %{y:,.0f}<extra></extra>"
-    ))
-    apply_layout(fig, dict(height=400))
-    st.plotly_chart(fig, use_container_width=True)
-    
-    # 데이터 테이블
-    st.markdown("### 📋 상세 데이터")
-    display_df = df.copy()
-    display_df["date"] = display_df["date"].dt.strftime("%Y-%m-%d")
-    display_df["sessions"] = display_df["sessions"].apply(lambda x: f"{x:,.0f}")
-    display_df["total_users"] = display_df["total_users"].apply(lambda x: f"{x:,.0f}")
-    display_df["new_users"] = display_df["new_users"].apply(lambda x: f"{x:,.0f}")
-    st.dataframe(display_df.rename(columns={
-        "date": "날짜",
-        "sessions": "세션",
-        "total_users": "총 사용자",
-        "new_users": "신규 사용자"
-    }), use_container_width=True, hide_index=True)
+
     try:
         dmin, dmax = df['date'].min().date(), df['date'].max().date()
     except:
@@ -1021,7 +951,7 @@ def render_ga4_dashboard():
                 fig.add_trace(go.Bar(x=w['wl'], y=w['revenue_total'], name='총 매출',
                     marker_color=PASTEL['blue'], opacity=0.75, hovertemplate="매출: %{y:,.0f}원<extra></extra>"))
                 fig.add_trace(go.Bar(x=w['wl'], y=-w['cost_total'], name='매입(리워드)',
-                                     marker_color=PASTEL['red'], opacity=0.75, customdata=w['cost_total'],
+                    marker_color=PASTEL['red'], opacity=0.75, customdata=w['cost_total'],
                     hovertemplate="매입: %{customdata:,.0f}원<extra></extra>"))
                 fig.add_trace(go.Scatter(x=w['wl'], y=w['margin'], name='마진', mode='lines+markers+text',
                     text=[format_won(v) for v in w['margin']], textposition='top center',
@@ -1035,6 +965,70 @@ def render_ga4_dashboard():
 
     cp_kpi_section()
     cp_trend_section()
+
+
+def render_ga4_dashboard():
+    st.markdown("## 📈 GA4 분석")
+    
+    property_option = st.radio(
+        "GA4 속성 선택",
+        ["포인트클릭", "캐시플레이"],
+        horizontal=True,
+        key="ga4_property_selector"
+    )
+    
+    if property_option == "포인트클릭":
+        property_id = st.secrets["ga4_property_id_pointclick"]
+    else:
+        property_id = st.secrets["ga4_property_id_cashplay"]
+    
+    with st.spinner(f"{property_option} GA4 데이터 로딩 중..."):
+        df = load_ga4_data(property_id, start_date="30daysAgo", end_date="today")
+    
+    if df.empty:
+        st.warning("데이터가 없습니다.")
+        return
+    
+    st.markdown("### 📊 최근 30일 요약")
+    col1, col2, col3 = st.columns(3)
+    
+    total_sessions = df["sessions"].sum()
+    total_users = df["total_users"].sum()
+    total_new_users = df["new_users"].sum()
+    
+    col1.metric("총 세션", format_number(total_sessions))
+    col2.metric("총 사용자", format_number(total_users))
+    col3.metric("신규 사용자", format_number(total_new_users))
+    
+    st.markdown("---")
+    
+    st.markdown("### 📈 일별 세션 추이")
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(
+        x=df["date"],
+        y=df["sessions"],
+        mode="lines+markers",
+        name="세션",
+        line=dict(color=PASTEL['blue'], width=2.5),
+        marker=dict(size=6),
+        hovertemplate="<b>%{x|%Y-%m-%d}</b><br>세션: %{y:,.0f}<extra></extra>"
+    ))
+    apply_layout(fig, dict(height=400))
+    st.plotly_chart(fig, use_container_width=True)
+    
+    st.markdown("### 📋 상세 데이터")
+    display_df = df.copy()
+    display_df["date"] = display_df["date"].dt.strftime("%Y-%m-%d")
+    display_df["sessions"] = display_df["sessions"].apply(lambda x: f"{x:,.0f}")
+    display_df["total_users"] = display_df["total_users"].apply(lambda x: f"{x:,.0f}")
+    display_df["new_users"] = display_df["new_users"].apply(lambda x: f"{x:,.0f}")
+    st.dataframe(display_df.rename(columns={
+        "date": "날짜",
+        "sessions": "세션",
+        "total_users": "총 사용자",
+        "new_users": "신규 사용자"
+    }), use_container_width=True, hide_index=True)
+
 
 def main():
     st.title("📊 E프로젝트 대시보드")
@@ -1057,6 +1051,7 @@ def main():
         st.markdown("---")
 
     tab_pc, tab_cp, tab_ga = st.tabs(["🟢 PointClick (B2B)", "🔵 CashPlay (B2C)", "📈 GA4 분석"])
+
     with tab_pc:
         if 'pointclick' not in st.session_state['data_loaded']:
             with st.spinner("포인트클릭 데이터 로딩 중..."):
@@ -1078,8 +1073,10 @@ def main():
             cp_df = st.session_state['data_loaded']['cashplay']
         
         render_cashplay_dashboard(cp_df)
+    
     with tab_ga:
         render_ga4_dashboard()
+
 
 if __name__ == "__main__":
     main()
