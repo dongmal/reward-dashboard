@@ -8,10 +8,9 @@ from datetime import datetime, timedelta, date
 import numpy as np
 from functools import wraps
 
-# GA4 연동
-from google.analytics.data_v1beta import BetaAnalyticsDataClient
-from google.analytics.data_v1beta.types import DateRange, Dimension, Metric, RunReportRequest
-
+# ============================================================
+# 페이지 설정
+# ============================================================
 st.set_page_config(
     page_title="E프로젝트 대시보드",
     page_icon="📊",
@@ -19,6 +18,9 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
+# ============================================================
+# CSS – Power BI 스타일 + Light/Dark 대응
+# ============================================================
 st.markdown("""
 <style>
 .main .block-container { padding-top: 1rem; max-width: 1440px; }
@@ -245,49 +247,6 @@ def load_cashplay(df: pd.DataFrame) -> pd.DataFrame:
     df['pointclick_ratio'] = df.apply(lambda row: safe_divide(row['pointclick_revenue'], row['revenue_total'], default=0, scale=100), axis=1)
     
     return df
-
-@st.cache_data(ttl=600, show_spinner=False)
-def load_ga4_data(property_id: str, start_date: str = "30daysAgo", end_date: str = "today") -> pd.DataFrame:
-    try:
-        credentials = Credentials.from_service_account_info(
-            st.secrets["gcp_service_account"],
-            scopes=["https://www.googleapis.com/auth/analytics.readonly"]
-        )
-        
-        client = BetaAnalyticsDataClient(credentials=credentials)
-        
-        request = RunReportRequest(
-            property=f"properties/{property_id}",
-            date_ranges=[DateRange(start_date=start_date, end_date=end_date)],
-            dimensions=[Dimension(name="date")],
-            metrics=[
-                Metric(name="sessions"),
-                Metric(name="totalUsers"),
-                Metric(name="newUsers"),
-            ],
-        )
-        
-        response = client.run_report(request)
-        
-        if not response.rows:
-            st.warning("GA4 데이터가 없습니다.")
-            return pd.DataFrame()
-        
-        data = []
-        for row in response.rows:
-            data.append({
-                "date": pd.to_datetime(row.dimension_values[0].value),
-                "sessions": int(row.metric_values[0].value),
-                "total_users": int(row.metric_values[1].value),
-                "new_users": int(row.metric_values[2].value),
-            })
-        
-        df = pd.DataFrame(data)
-        return df.sort_values("date").reset_index(drop=True)
-    
-    except Exception as e:
-        st.error(f"❌ GA4 데이터 로드 오류: {e}")
-        return pd.DataFrame()
 
 def format_won(n):
     if pd.isna(n):
@@ -950,8 +909,7 @@ def render_cashplay_dashboard(df: pd.DataFrame):
                 fig = go.Figure()
                 fig.add_trace(go.Bar(x=w['wl'], y=w['revenue_total'], name='총 매출',
                     marker_color=PASTEL['blue'], opacity=0.75, hovertemplate="매출: %{y:,.0f}원<extra></extra>"))
-                fig.add_trace(go.Bar(x=w['wl'], y=-w['cost_total'], name='매입(리워드)',
-                    marker_color=PASTEL['red'], opacity=0.75, customdata=w['cost_total'],
+                fig.add_trace(go.Bar(x=w['wl'], y=-w['cost_total'], name='매입(리워드)',marker_color=PASTEL['red'], opacity=0.75, customdata=w['cost_total'],
                     hovertemplate="매입: %{customdata:,.0f}원<extra></extra>"))
                 fig.add_trace(go.Scatter(x=w['wl'], y=w['margin'], name='마진', mode='lines+markers+text',
                     text=[format_won(v) for v in w['margin']], textposition='top center',
@@ -965,70 +923,6 @@ def render_cashplay_dashboard(df: pd.DataFrame):
 
     cp_kpi_section()
     cp_trend_section()
-
-
-def render_ga4_dashboard():
-    st.markdown("## 📈 GA4 분석")
-    
-    property_option = st.radio(
-        "GA4 속성 선택",
-        ["포인트클릭", "캐시플레이"],
-        horizontal=True,
-        key="ga4_property_selector"
-    )
-    
-    if property_option == "포인트클릭":
-        property_id = st.secrets["ga4_property_id_pointclick"]
-    else:
-        property_id = st.secrets["ga4_property_id_cashplay"]
-    
-    with st.spinner(f"{property_option} GA4 데이터 로딩 중..."):
-        df = load_ga4_data(property_id, start_date="30daysAgo", end_date="today")
-    
-    if df.empty:
-        st.warning("데이터가 없습니다.")
-        return
-    
-    st.markdown("### 📊 최근 30일 요약")
-    col1, col2, col3 = st.columns(3)
-    
-    total_sessions = df["sessions"].sum()
-    total_users = df["total_users"].sum()
-    total_new_users = df["new_users"].sum()
-    
-    col1.metric("총 세션", format_number(total_sessions))
-    col2.metric("총 사용자", format_number(total_users))
-    col3.metric("신규 사용자", format_number(total_new_users))
-    
-    st.markdown("---")
-    
-    st.markdown("### 📈 일별 세션 추이")
-    fig = go.Figure()
-    fig.add_trace(go.Scatter(
-        x=df["date"],
-        y=df["sessions"],
-        mode="lines+markers",
-        name="세션",
-        line=dict(color=PASTEL['blue'], width=2.5),
-        marker=dict(size=6),
-        hovertemplate="<b>%{x|%Y-%m-%d}</b><br>세션: %{y:,.0f}<extra></extra>"
-    ))
-    apply_layout(fig, dict(height=400))
-    st.plotly_chart(fig, use_container_width=True)
-    
-    st.markdown("### 📋 상세 데이터")
-    display_df = df.copy()
-    display_df["date"] = display_df["date"].dt.strftime("%Y-%m-%d")
-    display_df["sessions"] = display_df["sessions"].apply(lambda x: f"{x:,.0f}")
-    display_df["total_users"] = display_df["total_users"].apply(lambda x: f"{x:,.0f}")
-    display_df["new_users"] = display_df["new_users"].apply(lambda x: f"{x:,.0f}")
-    st.dataframe(display_df.rename(columns={
-        "date": "날짜",
-        "sessions": "세션",
-        "total_users": "총 사용자",
-        "new_users": "신규 사용자"
-    }), use_container_width=True, hide_index=True)
-
 
 def main():
     st.title("📊 E프로젝트 대시보드")
@@ -1050,7 +944,7 @@ def main():
             st.rerun()
         st.markdown("---")
 
-    tab_pc, tab_cp, tab_ga = st.tabs(["🟢 PointClick (B2B)", "🔵 CashPlay (B2C)", "📈 GA4 분석"])
+    tab_pc, tab_cp = st.tabs(["🟢 PointClick (B2B)", "🔵 CashPlay (B2C)"])
 
     with tab_pc:
         if 'pointclick' not in st.session_state['data_loaded']:
@@ -1073,10 +967,6 @@ def main():
             cp_df = st.session_state['data_loaded']['cashplay']
         
         render_cashplay_dashboard(cp_df)
-    
-    with tab_ga:
-        render_ga4_dashboard()
-
 
 if __name__ == "__main__":
     main()
