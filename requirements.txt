@@ -4,3 +4,4 @@ pandas
 plotly
 google-auth
 Authlib
+google-analytics-data==0.18.0

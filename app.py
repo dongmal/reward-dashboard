@@ -7,6 +7,9 @@ from google.oauth2.service_account import Credentials
 from datetime import datetime, timedelta, date
 import numpy as np
 from functools import wraps
+# GA4 연동 추가 (이 3줄만 추가)
+from google.analytics.data_v1beta import BetaAnalyticsDataClient
+from google.analytics.data_v1beta.types import DateRange, Dimension, Metric, RunReportRequest
 
 # ============================================================
 # 페이지 설정
