@@ -1,0 +1,41 @@
+name: Sync PointClick Data
+
+on:
+  schedule:
+    # 매일 오전 0시 UTC = 오전 9시 KST
+    - cron: '0 0 * * *'
+  workflow_dispatch:
+    inputs:
+      target_date:
+        description: '적재할 날짜 (YYYY-MM-DD). 비워두면 전일자'
+        required: false
+        type: string
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install pymysql gspread google-auth
+
+      - name: Run sync script
+        env:
+          SPREADSHEET_ID: ${{ secrets.SPREADSHEET_ID }}
+          GCP_SERVICE_ACCOUNT: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+          MYSQL_HOST: ${{ secrets.MYSQL_HOST }}
+          MYSQL_PORT: ${{ secrets.MYSQL_PORT }}
+          MYSQL_USER: ${{ secrets.MYSQL_USER }}
+          MYSQL_PASSWORD: ${{ secrets.MYSQL_PASSWORD }}
+          MYSQL_DATABASE: ${{ secrets.MYSQL_DATABASE }}
+        run: |
+          if [ -n "${{ github.event.inputs.target_date }}" ]; then
+            python sync_pointclick.py "${{ github.event.inputs.target_date }}"
+          else
+            python sync_pointclick.py
+          fi
