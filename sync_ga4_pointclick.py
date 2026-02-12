@@ -8,6 +8,7 @@ import os
 import json
 import sys
 from datetime import datetime, timedelta
+from urllib.parse import urlparse
 
 import gspread
 from google.oauth2.service_account import Credentials
@@ -26,6 +27,7 @@ from google.analytics.data_v1beta.types import (
 # ============================================================
 SPREADSHEET_ID = os.environ.get("SPREADSHEET_ID")
 SHEET_NAME = "포인트클릭_GA"
+INTERNAL_DOMAIN = "ad.pointclick.co.kr"
 MEDIA_MASTER_SHEET = "매체마스터"
 SCOPES = [
     "https://www.googleapis.com/auth/spreadsheets",
@@ -169,11 +171,21 @@ def fetch_ga4_data(property_id: str, start_date: str, end_date: str) -> list[lis
         row_data = []
 
         # Dimensions
-        for dim_value in row.dimension_values:
+        for i, dim_value in enumerate(row.dimension_values):
             val = dim_value.value
             # 날짜 포맷 변환 (20240101 -> 2024-01-01)
             if len(val) == 8 and val.isdigit():
                 val = f"{val[:4]}-{val[4:6]}-{val[6:]}"
+            # pageReferrer 도메인 제거: 내부 도메인이면 path만, 외부면 (external)
+            if headers[i] == "pageReferrer" and val:
+                try:
+                    parsed = urlparse(val)
+                    if parsed.hostname and INTERNAL_DOMAIN in parsed.hostname:
+                        val = parsed.path or "/"
+                    elif parsed.hostname:
+                        val = "(external)"
+                except Exception:
+                    pass
             row_data.append(val)
 
         # Metrics
