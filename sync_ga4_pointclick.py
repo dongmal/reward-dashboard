@@ -134,7 +134,6 @@ def fetch_ga4_data(property_id: str, start_date: str, end_date: str) -> list[lis
             Dimension(name="customEvent:page_name"),
             Dimension(name="customEvent:page_type"),
             Dimension(name="customEvent:tab"),
-            Dimension(name="customEvent:tab_title"),
             Dimension(name="customEvent:media_key"),  # 매체 추적
 
             # 기기 정보
