@@ -1,0 +1,37 @@
+name: Sync PointClick GA4 Data
+
+on:
+  schedule:
+    # 매일 오전 0시 UTC = 오전 9시 KST
+    - cron: '0 0 * * *'
+  workflow_dispatch:
+    inputs:
+      days:
+        description: '수집 기간 (일). 비워두면 90일'
+        required: false
+        type: string
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install gspread google-auth google-analytics-data
+
+      - name: Run GA4 sync script
+        env:
+          SPREADSHEET_ID: ${{ secrets.SPREADSHEET_ID }}
+          GCP_SERVICE_ACCOUNT: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+          GA4_POINTCLICK_PROPERTY_ID: ${{ secrets.GA4_POINTCLICK_PROPERTY_ID }}
+        run: |
+          if [ -n "${{ github.event.inputs.days }}" ]; then
+            python sync_ga4_pointclick.py "${{ github.event.inputs.days }}"
+          else
+            python sync_ga4_pointclick.py
+          fi
