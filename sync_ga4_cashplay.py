@@ -68,19 +68,11 @@ def fetch_ga4_data(property_id: str, start_date: str, end_date: str) -> list[lis
     request = RunReportRequest(
         property=property_id,
         date_ranges=[DateRange(start_date=start_date, end_date=end_date)],
-        dimension_filter=FilterExpression(
-            filter=Filter(
-                field_name="streamName",
-                string_filter=Filter.StringFilter(
-                    match_type=Filter.StringFilter.MatchType.EXACT,
-                    value="캐시플레이 (운영)",
-                ),
-            )
-        ),
         dimensions=[
             # 기본 차원
             Dimension(name="date"),
             Dimension(name="eventName"),
+            Dimension(name="streamName"),  # 스트림 이름 확인용 (운영/개발 구분)
 
             # 페이지/메뉴 추적
             Dimension(name="pageTitle"),
@@ -89,7 +81,6 @@ def fetch_ga4_data(property_id: str, start_date: str, end_date: str) -> list[lis
             # 커스텀 이벤트 차원 (메뉴/버튼 클릭 추적)
             Dimension(name="customEvent:page"),
             Dimension(name="customEvent:page_type"),
-            Dimension(name="customEvent:button_id"),
 
             # 기기 정보
             Dimension(name="deviceCategory"),
