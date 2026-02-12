@@ -141,8 +141,8 @@ def safe_execution(default_return=None, error_message="오류가 발생했습니
         return wrapper
     return decorator
 
-@st.cache_data(ttl=600, show_spinner=False)
-def load_sheet_data(sheet_name: str) -> pd.DataFrame:
+@st.cache_data(ttl=3600, show_spinner=False)
+def load_sheet_data(sheet_name: str, recent_rows: int = 10000) -> pd.DataFrame:
     try:
         creds = Credentials.from_service_account_info(
             st.secrets["gcp_service_account"],
@@ -151,14 +151,41 @@ def load_sheet_data(sheet_name: str) -> pd.DataFrame:
         gc = gspread.authorize(creds)
         sh = gc.open_by_key(st.secrets["spreadsheet_id"])
         ws = sh.worksheet(sheet_name)
-        data = ws.get_all_records()
-        
-        if not data:
+
+        headers = ws.row_values(1)
+        if not headers:
             st.warning(f"시트 '{sheet_name}'에 데이터가 없습니다.")
             return pd.DataFrame()
-        
-        return pd.DataFrame(data)
-    
+
+        total_rows = len(ws.col_values(1))
+
+        if total_rows <= 1:
+            st.warning(f"시트 '{sheet_name}'에 데이터가 없습니다.")
+            return pd.DataFrame()
+
+        if total_rows <= recent_rows + 1:
+            data = ws.get_all_records()
+            if not data:
+                return pd.DataFrame()
+            return pd.DataFrame(data)
+
+        start_row = max(2, total_rows - recent_rows + 1)
+        last_col = chr(ord('A') + len(headers) - 1) if len(headers) <= 26 else None
+
+        if last_col:
+            range_str = f"A{start_row}:{last_col}{total_rows}"
+        else:
+            range_str = f"A{start_row}:{total_rows}"
+
+        raw_data = ws.get(range_str)
+
+        if not raw_data:
+            st.warning(f"시트 '{sheet_name}'에 데이터가 없습니다.")
+            return pd.DataFrame()
+
+        df = pd.DataFrame(raw_data, columns=headers[:len(raw_data[0])] if raw_data else headers)
+        return df
+
     except gspread.exceptions.WorksheetNotFound:
         st.error(f"❌ 시트 '{sheet_name}'을 찾을 수 없습니다.")
         return pd.DataFrame()
