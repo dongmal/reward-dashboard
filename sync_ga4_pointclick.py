@@ -160,49 +160,60 @@ def fetch_ga4_data(property_id: str, start_date: str, end_date: str) -> list[lis
         limit=100000,
     )
 
-    response = client.run_report(request)
-
     # 헤더
     headers = [dim.name for dim in request.dimensions] + [metric.name for metric in request.metrics]
 
-    # 데이터 행
+    def parse_rows(response_rows):
+        rows = []
+        for row in response_rows:
+            row_data = []
+            for i, dim_value in enumerate(row.dimension_values):
+                val = dim_value.value
+                if len(val) == 8 and val.isdigit():
+                    val = f"{val[:4]}-{val[4:6]}-{val[6:]}"
+                if headers[i] == "pageReferrer" and val:
+                    try:
+                        parsed = urlparse(val)
+                        if parsed.hostname and INTERNAL_DOMAIN in parsed.hostname:
+                            val = parsed.path or "/"
+                        elif parsed.hostname:
+                            val = "(external)"
+                    except Exception:
+                        pass
+                row_data.append(val)
+            for metric_value in row.metric_values:
+                val = float(metric_value.value)
+                if headers[len(row_data)] == "engagementRate":
+                    val = round(val * 100, 2)
+                row_data.append(val)
+            rows.append(row_data)
+        return rows
+
+    # 페이지네이션으로 전체 데이터 수집
     rows = []
-    for row in response.rows:
-        row_data = []
+    offset = 0
+    page_size = 100000
 
-        # Dimensions
-        for i, dim_value in enumerate(row.dimension_values):
-            val = dim_value.value
-            # 날짜 포맷 변환 (20240101 -> 2024-01-01)
-            if len(val) == 8 and val.isdigit():
-                val = f"{val[:4]}-{val[4:6]}-{val[6:]}"
-            # pageReferrer 도메인 제거: 내부 도메인이면 path만, 외부면 (external)
-            if headers[i] == "pageReferrer" and val:
-                try:
-                    parsed = urlparse(val)
-                    if parsed.hostname and INTERNAL_DOMAIN in parsed.hostname:
-                        val = parsed.path or "/"
-                    elif parsed.hostname:
-                        val = "(external)"
-                except Exception:
-                    pass
-            row_data.append(val)
+    while True:
+        request.offset = offset
+        request.limit = page_size
+        response = client.run_report(request)
 
-        # Metrics
-        for metric_value in row.metric_values:
-            val = float(metric_value.value)
-            # engagementRate는 비율이므로 100 곱하기
-            if headers[len(row_data)] == "engagementRate":
-                val = round(val * 100, 2)
-            row_data.append(val)
+        page_rows = parse_rows(response.rows)
+        rows.extend(page_rows)
 
-        rows.append(row_data)
+        total = response.row_count
+        offset += len(response.rows)
+        print(f"[sync] GA4 조회 중: {offset} / {total}행")
+
+        if offset >= total:
+            break
 
     return [headers] + rows
 
 
 def update_sheet(data: list[list]):
-    """Google Sheets에 데이터 덮어쓰기 (전체 삭제 후 새로 씀)"""
+    """Google Sheets에 누적 적재 (upsert: 같은 날짜 행 교체 + 신규 날짜 append)"""
     gc = get_gspread_client()
     sh = gc.open_by_key(SPREADSHEET_ID)
 
@@ -212,13 +223,48 @@ def update_sheet(data: list[list]):
     except gspread.exceptions.WorksheetNotFound:
         ws = sh.add_worksheet(title=SHEET_NAME, rows=1000, cols=20)
 
-    # 기존 데이터 삭제
+    new_headers = data[0]
+    new_rows = data[1:]
+
+    existing = ws.get_all_values()
+
+    # 시트가 비어있으면 헤더 포함 전체 쓰기
+    if not existing:
+        ws.update(range_name="A1", values=data)
+        return len(new_rows)
+
+    existing_headers = existing[0]
+    existing_rows = existing[1:]
+
+    # 헤더가 바뀐 경우 전체 재작성
+    if existing_headers != new_headers:
+        print("[sync] 헤더 변경 감지 → 전체 재작성")
+        ws.clear()
+        ws.update(range_name="A1", values=data)
+        return len(new_rows)
+
+    # date 컬럼 인덱스 확인 (항상 0번)
+    date_idx = 0
+
+    # 새 데이터에 포함된 날짜 집합
+    new_dates = {row[date_idx] for row in new_rows if row}
+
+    # 기존 행 중 새 데이터 날짜에 해당하는 행 제거 (나머지는 보존)
+    kept_rows = [row for row in existing_rows if row and row[date_idx] not in new_dates]
+
+    # 보존 행 + 새 데이터 행 합치기 (날짜 오름차순 정렬)
+    merged = kept_rows + new_rows
+    merged.sort(key=lambda r: r[date_idx] if r else "")
+
+    # 시트 전체 재작성 (헤더 + 병합 결과)
     ws.clear()
+    ws.update(range_name="A1", values=[new_headers] + merged)
 
-    # 새 데이터 쓰기
-    ws.update(range_name="A1", values=data)
+    added = len(new_dates - {row[date_idx] for row in kept_rows if row})
+    updated = len(new_dates) - added
+    print(f"[sync] 신규 날짜 {added}일 추가, 기존 날짜 {updated}일 갱신, 보존 행 {len(kept_rows)}행")
 
-    return len(data) - 1  # 헤더 제외 행 수
+    return len(merged)
 
 
 def main():
