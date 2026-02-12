@@ -17,6 +17,8 @@ from google.analytics.data_v1beta.types import (
     Dimension,
     Metric,
     RunReportRequest,
+    FilterExpression,
+    Filter,
 )
 
 # ============================================================
@@ -111,6 +113,15 @@ def fetch_ga4_data(property_id: str, start_date: str, end_date: str) -> list[lis
     request = RunReportRequest(
         property=property_id,
         date_ranges=[DateRange(start_date=start_date, end_date=end_date)],
+        dimension_filter=FilterExpression(
+            filter=Filter(
+                field_name="streamName",
+                string_filter=Filter.StringFilter(
+                    match_type=Filter.StringFilter.MatchType.EXACT,
+                    value="포인트클릭 (운영)",
+                ),
+            )
+        ),
         dimensions=[
             # 기본 차원
             Dimension(name="date"),
