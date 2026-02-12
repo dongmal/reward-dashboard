@@ -249,17 +249,18 @@ def main():
                 break
 
         if media_key_idx is not None:
-            # media_name 컬럼 추가
-            headers.append('media_name')
+            # customEvent:media_key 바로 오른쪽에 media_name 컬럼 삽입
+            insert_idx = media_key_idx + 1
+            headers.insert(insert_idx, 'media_name')
 
-            # 각 행에 media_name 추가
+            # 각 행에 media_name 삽입
             for i in range(1, len(data)):
                 row = data[i]
                 media_key = row[media_key_idx] if media_key_idx < len(row) else ""
                 media_name = media_master.get(media_key, media_key)  # 매칭 안 되면 key 그대로
-                row.append(media_name)
+                row.insert(insert_idx, media_name)
 
-            print(f"[sync] 매체명 조인 완료")
+            print(f"[sync] 매체명 조인 완료 (customEvent:media_key 오른쪽에 삽입)")
 
     # Google Sheets에 덮어쓰기
     count = update_sheet(data)
