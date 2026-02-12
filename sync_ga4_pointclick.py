@@ -71,16 +71,14 @@ def fetch_ga4_data(property_id: str, start_date: str, end_date: str) -> list[lis
             Dimension(name="date"),
             Dimension(name="eventName"),
 
-            # 페이지/메뉴 추적
+            # 페이지/메뉴 추적 (pageTitle과 pagePath 중 하나만)
             Dimension(name="pageTitle"),
-            Dimension(name="pagePath"),
 
-            # 커스텀 이벤트 차원 (포인트클릭 전용)
+            # 커스텀 이벤트 차원 (포인트클릭 전용 - 핵심만)
             Dimension(name="customEvent:page_name"),
             Dimension(name="customEvent:page_type"),
             Dimension(name="customEvent:tab"),
             Dimension(name="customEvent:tab_title"),
-            Dimension(name="customEvent:tab_type"),
 
             # 기기 정보
             Dimension(name="deviceCategory"),
