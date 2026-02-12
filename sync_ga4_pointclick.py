@@ -49,7 +49,9 @@ def get_ga4_client():
 
 def fetch_ga4_data(property_id: str, start_date: str, end_date: str) -> list[list]:
     """
-    GA4에서 데이터 조회
+    GA4에서 이벤트 기반 데이터 조회
+    - 메뉴별 세션 타임, 클릭수, 참여율 분석 가능
+    - DAU/WAU/MAU 사용자 지표 포함
 
     Args:
         property_id: GA4 속성 ID (예: "properties/123456789")
@@ -65,23 +67,40 @@ def fetch_ga4_data(property_id: str, start_date: str, end_date: str) -> list[lis
         property=property_id,
         date_ranges=[DateRange(start_date=start_date, end_date=end_date)],
         dimensions=[
+            # 기본 차원
             Dimension(name="date"),
-            Dimension(name="sessionSource"),
-            Dimension(name="sessionMedium"),
-            Dimension(name="sessionCampaignName"),
+            Dimension(name="eventName"),
+
+            # 페이지/메뉴 추적
+            Dimension(name="pageTitle"),
+            Dimension(name="pagePath"),
+
+            # 커스텀 이벤트 차원 (포인트클릭 전용)
+            Dimension(name="customEvent:page_name"),
+            Dimension(name="customEvent:page_type"),
+            Dimension(name="customEvent:tab"),
+            Dimension(name="customEvent:tab_title"),
+            Dimension(name="customEvent:tab_type"),
+
+            # 기기 정보
             Dimension(name="deviceCategory"),
-            Dimension(name="country"),
         ],
         metrics=[
-            Metric(name="sessions"),
-            Metric(name="totalUsers"),
+            # 사용자 지표 (DAU/WAU/MAU)
+            Metric(name="activeUsers"),  # DAU
+            Metric(name="active7DayUsers"),  # WAU
+            Metric(name="active28DayUsers"),  # MAU
             Metric(name="newUsers"),
-            Metric(name="screenPageViews"),
+
+            # 이벤트/세션 지표
             Metric(name="eventCount"),
-            Metric(name="conversions"),
+            Metric(name="sessions"),
+            Metric(name="screenPageViews"),
+
+            # 참여 지표
             Metric(name="averageSessionDuration"),
-            Metric(name="bounceRate"),
             Metric(name="engagementRate"),
+            Metric(name="userEngagementDuration"),
         ],
         limit=100000,
     )
@@ -107,8 +126,8 @@ def fetch_ga4_data(property_id: str, start_date: str, end_date: str) -> list[lis
         # Metrics
         for metric_value in row.metric_values:
             val = float(metric_value.value)
-            # bounceRate, engagementRate는 비율이므로 100 곱하기
-            if headers[len(row_data)] in ["bounceRate", "engagementRate"]:
+            # engagementRate는 비율이므로 100 곱하기
+            if headers[len(row_data)] == "engagementRate":
                 val = round(val * 100, 2)
             row_data.append(val)
 
