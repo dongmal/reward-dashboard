@@ -90,7 +90,6 @@ def fetch_ga4_data(property_id: str, start_date: str, end_date: str) -> list[lis
             # 커스텀 이벤트 차원 (메뉴/버튼 클릭 추적)
             Dimension(name="customEvent:page"),
             Dimension(name="customEvent:page_type"),
-            Dimension(name="customEvent:button_id"),
 
             # 기기 정보
             Dimension(name="deviceCategory"),
