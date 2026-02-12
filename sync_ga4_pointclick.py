@@ -136,8 +136,6 @@ def fetch_ga4_data(property_id: str, start_date: str, end_date: str) -> list[lis
             Dimension(name="customEvent:page_type"),
             Dimension(name="customEvent:media_key"),  # 매체 추적
 
-            # 기기 정보
-            Dimension(name="deviceCategory"),
         ],
         metrics=[
             # 사용자 지표 (DAU/WAU/MAU)
