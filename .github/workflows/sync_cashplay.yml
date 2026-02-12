@@ -1,0 +1,37 @@
+name: Sync CashPlay Data
+
+on:
+  schedule:
+    # 매일 오전 0시 UTC = 오전 9시 KST
+    - cron: '0 0 * * *'
+  workflow_dispatch:
+    inputs:
+      target_date:
+        description: '적재할 날짜 (YYYY-MM-DD). 비워두면 전일자'
+        required: false
+        type: string
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install gspread google-auth
+
+      - name: Run sync script
+        env:
+          SPREADSHEET_ID: ${{ secrets.SPREADSHEET_ID }}
+          SOURCE_SPREADSHEET_ID: ${{ secrets.SOURCE_SPREADSHEET_ID }}
+          GCP_SERVICE_ACCOUNT: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+        run: |
+          if [ -n "${{ github.event.inputs.target_date }}" ]; then
+            python sync_cashplay.py "${{ github.event.inputs.target_date }}"
+          else
+            python sync_cashplay.py
+          fi

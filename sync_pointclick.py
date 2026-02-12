@@ -31,7 +31,7 @@ SELECT
     a.ad_key as 'CD',
     a2.advertiser_name as '광고주명',
     a.os_type as 'OS',
-    a.ad_action_type as '광고타입',
+    a.ad_type as '광고타입',
     a.ad_cost as '광고단가',
     SUM(rda.check_count) as '클릭수',
     SUM(rda.complete_count) as '전환수',
