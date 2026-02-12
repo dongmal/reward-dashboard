@@ -154,6 +154,29 @@ def load_cashplay(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
+@safe_execution(default_return=pd.DataFrame(), error_message="매체 마스터 데이터 처리 중 오류")
+def load_media_master(df: pd.DataFrame) -> pd.DataFrame:
+    """매체 마스터 데이터 전처리"""
+    if df.empty:
+        return df
+
+    col_map = {
+        '매체키': 'media_key',
+        '매체명': 'media_name'
+    }
+    df = df.rename(columns=col_map)
+
+    # 필수 컬럼 확인
+    if 'media_key' not in df.columns or 'media_name' not in df.columns:
+        st.error("⚠️ 매체 마스터에 필수 컬럼(매체키, 매체명)이 없습니다.")
+        return pd.DataFrame()
+
+    # 중복 제거 (media_key 기준)
+    df = df[['media_key', 'media_name']].drop_duplicates(subset=['media_key'])
+
+    return df
+
+
 @safe_execution(default_return=pd.DataFrame(), error_message="GA4 데이터 처리 중 오류")
 def load_ga4(df: pd.DataFrame) -> pd.DataFrame:
     """GA4 데이터 전처리 (공통)"""

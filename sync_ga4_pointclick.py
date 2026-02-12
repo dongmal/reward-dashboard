@@ -24,6 +24,7 @@ from google.analytics.data_v1beta.types import (
 # ============================================================
 SPREADSHEET_ID = os.environ.get("SPREADSHEET_ID")
 SHEET_NAME = "포인트클릭_GA"
+MEDIA_MASTER_SHEET = "매체마스터"
 SCOPES = [
     "https://www.googleapis.com/auth/spreadsheets",
     "https://www.googleapis.com/auth/analytics.readonly"
@@ -45,6 +46,50 @@ def get_ga4_client():
     creds_json = json.loads(os.environ["GCP_SERVICE_ACCOUNT"])
     creds = Credentials.from_service_account_info(creds_json, scopes=SCOPES)
     return BetaAnalyticsDataClient(credentials=creds)
+
+
+def load_media_master():
+    """매체 마스터 데이터 로드"""
+    try:
+        gc = get_gspread_client()
+        sh = gc.open_by_key(SPREADSHEET_ID)
+        ws = sh.worksheet(MEDIA_MASTER_SHEET)
+        data = ws.get_all_values()
+
+        if not data or len(data) < 2:
+            print("[warn] 매체 마스터 시트가 비어있습니다.")
+            return {}
+
+        # 헤더 확인 (매체키, 매체명)
+        headers = data[0]
+        media_key_idx = None
+        media_name_idx = None
+
+        for i, h in enumerate(headers):
+            if h == '매체키' or h == 'media_key':
+                media_key_idx = i
+            if h == '매체명' or h == 'media_name':
+                media_name_idx = i
+
+        if media_key_idx is None or media_name_idx is None:
+            print("[warn] 매체 마스터에 필수 컬럼(매체키, 매체명)이 없습니다.")
+            return {}
+
+        # dictionary 생성 {media_key: media_name}
+        media_dict = {}
+        for row in data[1:]:
+            if len(row) > max(media_key_idx, media_name_idx):
+                key = row[media_key_idx]
+                name = row[media_name_idx]
+                if key and name:
+                    media_dict[key] = name
+
+        print(f"[sync] 매체 마스터 {len(media_dict)}개 로드 완료")
+        return media_dict
+
+    except Exception as e:
+        print(f"[warn] 매체 마스터 로드 실패: {str(e)}")
+        return {}
 
 
 def fetch_ga4_data(property_id: str, start_date: str, end_date: str) -> list[list]:
@@ -180,6 +225,9 @@ def main():
     print(f"[sync] 기간: {start_str} ~ {end_str} ({days}일)")
     print(f"[sync] Property ID: {property_id}")
 
+    # 매체 마스터 로드
+    media_master = load_media_master()
+
     # GA4 데이터 조회
     data = fetch_ga4_data(property_id, start_str, end_str)
 
@@ -188,6 +236,30 @@ def main():
         return
 
     print(f"[sync] GA4에서 {len(data) - 1}행 조회 완료")
+
+    # 매체 마스터와 조인
+    if media_master:
+        headers = data[0]
+        media_key_idx = None
+
+        # customEvent:media_key 컬럼 찾기
+        for i, h in enumerate(headers):
+            if h == 'customEvent:media_key':
+                media_key_idx = i
+                break
+
+        if media_key_idx is not None:
+            # media_name 컬럼 추가
+            headers.append('media_name')
+
+            # 각 행에 media_name 추가
+            for i in range(1, len(data)):
+                row = data[i]
+                media_key = row[media_key_idx] if media_key_idx < len(row) else ""
+                media_name = media_master.get(media_key, media_key)  # 매칭 안 되면 key 그대로
+                row.append(media_name)
+
+            print(f"[sync] 매체명 조인 완료")
 
     # Google Sheets에 덮어쓰기
     count = update_sheet(data)
