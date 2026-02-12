@@ -11,7 +11,7 @@ from utils import (
 from config.constants import PASTEL
 
 
-def render_cashplay_dashboard(df: pd.DataFrame, df_ga: pd.DataFrame = None):
+def render_cashplay_dashboard(df: pd.DataFrame):
     """캐시플레이 대시보드 렌더링"""
     if df.empty:
         st.warning("캐시플레이 데이터가 없습니다.")
@@ -26,7 +26,7 @@ def render_cashplay_dashboard(df: pd.DataFrame, df_ga: pd.DataFrame = None):
     @st.fragment
     def cp_kpi_section():
         st.markdown("## 📈 핵심 지표")
-        kf, kt = quick_date_picker(dmin, dmax, "cp_kpi", "이번달")
+        kf, kt = quick_date_picker(dmin, dmax, "cp_kpi", "어제")
         kdf = df[(df['date'].dt.date >= kf) & (df['date'].dt.date <= kt)]
         curr_sums, prev_sums, get_delta, get_rate_delta = get_comparison_metrics(df, kf, kt)
 
@@ -205,7 +205,7 @@ def render_cashplay_dashboard(df: pd.DataFrame, df_ga: pd.DataFrame = None):
     @st.fragment
     def cp_trend_section():
         st.markdown("## 💰 매출 · 비용 · 마진 추이 (주단위, 월요일 기준)")
-        tf, tt = quick_date_picker(dmin, dmax, "cp_tr", "올해")
+        tf, tt = quick_date_picker(dmin, dmax, "cp_tr", "이전달1일")
         tdf = df[(df['date'].dt.date >= tf) & (df['date'].dt.date <= tt)]
 
         if not tdf.empty:
@@ -231,16 +231,3 @@ def render_cashplay_dashboard(df: pd.DataFrame, df_ga: pd.DataFrame = None):
 
     cp_kpi_section()
     cp_trend_section()
-
-    # GA4 섹션
-    if df_ga is not None and not df_ga.empty:
-        st.markdown("---")
-        st.markdown("## 📊 GA4 데이터")
-        st.info("GA4 데이터 시각화 준비중입니다.")
-
-        # 데이터 미리보기
-        with st.expander("GA4 원본 데이터 미리보기"):
-            st.dataframe(df_ga.head(50), use_container_width=True)
-    else:
-        st.markdown("---")
-        st.info("GA4 데이터가 아직 로드되지 않았습니다.")

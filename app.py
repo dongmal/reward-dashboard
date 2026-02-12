@@ -2,7 +2,7 @@
 import streamlit as st
 from datetime import datetime
 from config.constants import SHEET_NAMES, CSS_STYLE, ALLOWED_DOMAIN
-from utils.data_loader import load_sheet_data, load_pointclick, load_cashplay, load_ga4
+from utils.data_loader import load_sheet_data, load_pointclick, load_cashplay
 from dashboards import render_pointclick_dashboard, render_cashplay_dashboard
 
 
@@ -83,7 +83,12 @@ def main():
             st.rerun()
         st.markdown("---")
 
-    tab_pc, tab_cp = st.tabs(["🟢 PointClick (B2B)", "🔵 CashPlay (B2C)"])
+    tab_pc, tab_cp, tab_pc_ga, tab_cp_ga = st.tabs([
+        "🟢 PointClick (B2B)",
+        "🔵 CashPlay (B2C)",
+        "📊 PointClick GA",
+        "📊 CashPlay GA"
+    ])
 
     with tab_pc:
         if 'pointclick' not in st.session_state['data_loaded']:
@@ -94,20 +99,7 @@ def main():
         else:
             pc_df = st.session_state['data_loaded']['pointclick']
 
-        # GA4 데이터 로드
-        if 'pointclick_ga' not in st.session_state['data_loaded']:
-            with st.spinner("포인트클릭 GA4 데이터 로딩 중..."):
-                try:
-                    pc_ga_raw = load_sheet_data(SHEET_NAMES["포인트클릭"]["ga"])
-                    pc_ga_df = load_ga4(pc_ga_raw)
-                    st.session_state['data_loaded']['pointclick_ga'] = pc_ga_df
-                except Exception as e:
-                    st.warning(f"GA4 데이터 로드 실패 (시트가 없을 수 있습니다): {str(e)}")
-                    st.session_state['data_loaded']['pointclick_ga'] = None
-        else:
-            pc_ga_df = st.session_state['data_loaded']['pointclick_ga']
-
-        render_pointclick_dashboard(pc_df, pc_ga_df)
+        render_pointclick_dashboard(pc_df)
 
     with tab_cp:
         if 'cashplay' not in st.session_state['data_loaded']:
@@ -118,20 +110,13 @@ def main():
         else:
             cp_df = st.session_state['data_loaded']['cashplay']
 
-        # GA4 데이터 로드
-        if 'cashplay_ga' not in st.session_state['data_loaded']:
-            with st.spinner("캐시플레이 GA4 데이터 로딩 중..."):
-                try:
-                    cp_ga_raw = load_sheet_data(SHEET_NAMES["캐시플레이"]["ga"])
-                    cp_ga_df = load_ga4(cp_ga_raw)
-                    st.session_state['data_loaded']['cashplay_ga'] = cp_ga_df
-                except Exception as e:
-                    st.warning(f"GA4 데이터 로드 실패 (시트가 없을 수 있습니다): {str(e)}")
-                    st.session_state['data_loaded']['cashplay_ga'] = None
-        else:
-            cp_ga_df = st.session_state['data_loaded']['cashplay_ga']
+        render_cashplay_dashboard(cp_df)
 
-        render_cashplay_dashboard(cp_df, cp_ga_df)
+    with tab_pc_ga:
+        st.info("포인트클릭 GA4 대시보드 구현 예정")
+
+    with tab_cp_ga:
+        st.info("캐시플레이 GA4 대시보드 구현 예정")
 
 
 if __name__ == "__main__":

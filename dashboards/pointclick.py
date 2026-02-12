@@ -11,7 +11,7 @@ from utils import (
 from config.constants import PASTEL, PUB_COLORS
 
 
-def render_pointclick_dashboard(df: pd.DataFrame, df_ga: pd.DataFrame = None):
+def render_pointclick_dashboard(df: pd.DataFrame):
     """포인트클릭 대시보드 렌더링"""
     if df.empty:
         st.warning("포인트클릭 데이터가 없습니다.")
@@ -40,7 +40,7 @@ def render_pointclick_dashboard(df: pd.DataFrame, df_ga: pd.DataFrame = None):
     @st.fragment
     def pc_kpi_section():
         st.markdown("## 📈 핵심 지표")
-        kf, kt = quick_date_picker(dmin, dmax, "pc_kpi", "이번달")
+        kf, kt = quick_date_picker(dmin, dmax, "pc_kpi", "어제")
         kdf = f[(f['date'].dt.date >= kf) & (f['date'].dt.date <= kt)]
         curr_sums, prev_sums, get_delta, get_rate_delta = get_comparison_metrics(f, kf, kt)
 
@@ -187,7 +187,7 @@ def render_pointclick_dashboard(df: pd.DataFrame, df_ga: pd.DataFrame = None):
     @st.fragment
     def pc_trend_section():
         st.markdown("## 💰 매출 · 마진 추이 (주단위, 월요일 기준)")
-        tf, tt = quick_date_picker(dmin, dmax, "pc_tr", "올해")
+        tf, tt = quick_date_picker(dmin, dmax, "pc_tr", "이전달1일")
         tdf = f[(f['date'].dt.date >= tf) & (f['date'].dt.date <= tt)]
 
         if tdf.empty:
@@ -242,16 +242,3 @@ def render_pointclick_dashboard(df: pd.DataFrame, df_ga: pd.DataFrame = None):
 
     pc_kpi_section()
     pc_trend_section()
-
-    # GA4 섹션
-    if df_ga is not None and not df_ga.empty:
-        st.markdown("---")
-        st.markdown("## 📊 GA4 데이터")
-        st.info("GA4 데이터 시각화 준비중입니다.")
-
-        # 데이터 미리보기
-        with st.expander("GA4 원본 데이터 미리보기"):
-            st.dataframe(df_ga.head(50), use_container_width=True)
-    else:
-        st.markdown("---")
-        st.info("GA4 데이터가 아직 로드되지 않았습니다.")
