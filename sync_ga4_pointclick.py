@@ -113,14 +113,23 @@ def fetch_ga4_data(property_id: str, start_date: str, end_date: str) -> list[lis
     request = RunReportRequest(
         property=property_id,
         date_ranges=[DateRange(start_date=start_date, end_date=end_date)],
+        dimension_filter=FilterExpression(
+            filter=Filter(
+                field_name="streamName",
+                string_filter=Filter.StringFilter(
+                    match_type=Filter.StringFilter.MatchType.EXACT,
+                    value="포인트클릭 - 운영 환경",
+                ),
+            )
+        ),
         dimensions=[
             # 기본 차원
             Dimension(name="date"),
             Dimension(name="eventName"),
-            Dimension(name="streamName"),  # 스트림 이름 확인용
 
-            # 페이지/메뉴 추적 (pageTitle과 pagePath 중 하나만)
+            # 페이지/메뉴 추적
             Dimension(name="pageTitle"),
+            Dimension(name="pagePath"),  # UX 분석용 경로
 
             # 커스텀 이벤트 차원 (포인트클릭 전용 - 핵심만)
             Dimension(name="customEvent:page_name"),
