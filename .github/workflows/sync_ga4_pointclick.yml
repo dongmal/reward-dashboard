@@ -24,12 +24,21 @@ jobs:
       - name: Install dependencies
         run: pip install gspread google-auth google-analytics-data
 
-      - name: Run GA4 sync script
+      - name: Step 1 - Update Media Master
+        env:
+          SPREADSHEET_ID: ${{ secrets.SPREADSHEET_ID }}
+          GCP_SERVICE_ACCOUNT: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+        run: |
+          echo "📋 매체마스터 업데이트 중..."
+          python create_media_master.py
+
+      - name: Step 2 - Sync GA4 Data
         env:
           SPREADSHEET_ID: ${{ secrets.SPREADSHEET_ID }}
           GCP_SERVICE_ACCOUNT: ${{ secrets.GCP_SERVICE_ACCOUNT }}
           GA4_POINTCLICK_PROPERTY_ID: ${{ secrets.GA4_POINTCLICK_PROPERTY_ID }}
         run: |
+          echo "📊 GA4 데이터 수집 중..."
           if [ -n "${{ github.event.inputs.days }}" ]; then
             python sync_ga4_pointclick.py "${{ github.event.inputs.days }}"
           else
