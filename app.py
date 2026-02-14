@@ -50,15 +50,18 @@ if not user_email.endswith(f"@{ALLOWED_DOMAIN}"):
 # ============================================================
 def init_session_state():
     defaults = {
-        'pc_kpi_di_from': None, 'pc_kpi_di_to': None, 'pc_kpi_seg': None,
-        'pc_tr_di_from': None,  'pc_tr_di_to': None,  'pc_tr_seg': None,
-        'cp_kpi_di_from': None, 'cp_kpi_di_to': None, 'cp_kpi_seg': None,
-        'cp_tr_di_from': None,  'cp_tr_di_to': None,  'cp_tr_seg': None,
+        'pc_kpi_di_from': None,    'pc_kpi_di_to': None,    'pc_kpi_seg': None,
+        'pc_detail_di_from': None, 'pc_detail_di_to': None, 'pc_detail_seg': None,
+        'pc_tr_di_from': None,     'pc_tr_di_to': None,     'pc_tr_seg': None,
+        'cp_kpi_di_from': None,    'cp_kpi_di_to': None,    'cp_kpi_seg': None,
+        'cp_detail_di_from': None, 'cp_detail_di_to': None, 'cp_detail_seg': None,
+        'cp_tr_di_from': None,     'cp_tr_di_to': None,     'cp_tr_seg': None,
         'pc_ga_traffic_di_from': None, 'pc_ga_traffic_di_to': None, 'pc_ga_traffic_seg': None,
         'pc_ga_event_di_from':   None, 'pc_ga_event_di_to':   None, 'pc_ga_event_seg':   None,
         'cp_ga_traffic_di_from': None, 'cp_ga_traffic_di_to': None, 'cp_ga_traffic_seg': None,
         'cp_ga_event_di_from':   None, 'cp_ga_event_di_to':   None, 'cp_ga_event_seg':   None,
         'data_loaded': {},
+        'data_extended': {},
     }
     for key, val in defaults.items():
         if key not in st.session_state:
@@ -98,9 +101,10 @@ def main():
     ])
 
     with tab_pc:
+        # 1단계: 7일치 빠른 로드
         if 'pointclick' not in st.session_state['data_loaded']:
             with st.spinner("포인트클릭 데이터 로딩 중..."):
-                pc_raw = load_sheet_data(SHEET_NAMES["포인트클릭"]["db"])
+                pc_raw = load_sheet_data(SHEET_NAMES["포인트클릭"]["db"], recent_days=7)
                 pc_df = load_pointclick(pc_raw)
                 st.session_state['data_loaded']['pointclick'] = pc_df
         else:
@@ -108,16 +112,35 @@ def main():
 
         render_pointclick_dashboard(pc_df)
 
+        # 2단계: 45일치 백그라운드 확장 로드
+        if 'pointclick' not in st.session_state['data_extended']:
+            with st.spinner("포인트클릭 전체 데이터 로딩 중..."):
+                pc_raw_full = load_sheet_data(SHEET_NAMES["포인트클릭"]["db"], recent_days=45)
+                pc_df_full = load_pointclick(pc_raw_full)
+                st.session_state['data_loaded']['pointclick'] = pc_df_full
+                st.session_state['data_extended']['pointclick'] = True
+            st.rerun()
+
     with tab_cp:
+        # 1단계: 7일치 빠른 로드
         if 'cashplay' not in st.session_state['data_loaded']:
             with st.spinner("캐시플레이 데이터 로딩 중..."):
-                cp_raw = load_sheet_data(SHEET_NAMES["캐시플레이"]["db"])
+                cp_raw = load_sheet_data(SHEET_NAMES["캐시플레이"]["db"], recent_days=7)
                 cp_df = load_cashplay(cp_raw)
                 st.session_state['data_loaded']['cashplay'] = cp_df
         else:
             cp_df = st.session_state['data_loaded']['cashplay']
 
         render_cashplay_dashboard(cp_df)
+
+        # 2단계: 45일치 백그라운드 확장 로드
+        if 'cashplay' not in st.session_state['data_extended']:
+            with st.spinner("캐시플레이 전체 데이터 로딩 중..."):
+                cp_raw_full = load_sheet_data(SHEET_NAMES["캐시플레이"]["db"], recent_days=45)
+                cp_df_full = load_cashplay(cp_raw_full)
+                st.session_state['data_loaded']['cashplay'] = cp_df_full
+                st.session_state['data_extended']['cashplay'] = True
+            st.rerun()
 
     with tab_pc_ga:
         if 'pointclick_ga' not in st.session_state['data_loaded']:

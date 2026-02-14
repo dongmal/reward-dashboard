@@ -61,11 +61,15 @@ def render_pointclick_dashboard(df: pd.DataFrame):
             m4.metric("전환수", format_number(tv), delta=f"{get_delta('conversions'):+.1f}%")
             m5.metric("평균 CVR", format_pct(acvr), delta=f"{get_rate_delta('conversions', 'clicks'):+.1f}%p")
 
-        st.markdown("---")
+    @st.fragment
+    def pc_detail_section():
         st.markdown("## 🔎 상세 분석")
+        kf, kt = quick_date_picker(dmin, dmax, "pc_detail", "전주")
+        kdf = f[(f['date'].dt.date >= kf) & (f['date'].dt.date <= kt)]
         st.caption(f"📅 {kf} ~ {kt}")
 
         if kdf.empty:
+            st.info("선택한 기간에 데이터가 없습니다.")
             return
 
         tab_conv, tab_adv, tab_media, tab_raw = st.tabs(["🎯 광고타입별 전환", "📊 광고주별", "📡 매체별", "📋 Raw"])
@@ -241,4 +245,7 @@ def render_pointclick_dashboard(df: pd.DataFrame):
                 st.plotly_chart(fig2, use_container_width=True)
 
     pc_kpi_section()
+    st.markdown("---")
+    pc_detail_section()
+    st.markdown("---")
     pc_trend_section()
