@@ -24,7 +24,7 @@ def safe_execution(default_return=None, error_message="오류가 발생했습니
 
 
 @st.cache_data(ttl=3600, show_spinner=False)
-def load_sheet_data(sheet_name: str, recent_days: int = 90) -> pd.DataFrame:
+def load_sheet_data(sheet_name: str, recent_days: int = 45) -> pd.DataFrame:
     """Google Sheets에서 데이터 로드 (최근 N일 기준)
 
     A열이 날짜(YYYY-MM-DD) 형식이라고 가정하고,
