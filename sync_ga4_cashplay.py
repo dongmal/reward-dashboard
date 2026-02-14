@@ -34,7 +34,7 @@ SCOPES = [
 ]
 
 # GA4 수집 기간 (최근 N일)
-DEFAULT_DAYS = 90
+DEFAULT_DAYS = 7
 
 
 def get_gspread_client():
@@ -167,8 +167,8 @@ def fetch_ga4_data(property_id: str, start_date: str, end_date: str) -> list[lis
     return [headers] + rows
 
 
-def update_sheet(data: list[list]):
-    """Google Sheets에 누적 적재 (upsert: 같은 날짜 행 교체 + 신규 날짜 append)"""
+def update_sheet(data: list[list], days: int = DEFAULT_DAYS):
+    """Google Sheets에 누적 적재 (upsert: 수집 기간 내 날짜만 교체, 그 이전 데이터는 보존)"""
     gc = get_gspread_client()
     sh = gc.open_by_key(SPREADSHEET_ID)
 
@@ -201,23 +201,27 @@ def update_sheet(data: list[list]):
     # date 컬럼 인덱스 확인 (항상 0번)
     date_idx = 0
 
+    # 수집 기간 시작일 (이 날짜보다 오래된 기존 행은 건드리지 않음)
+    cutoff = (datetime.now() - timedelta(days=days)).strftime("%Y-%m-%d")
+
     # 새 데이터에 포함된 날짜 집합
     new_dates = {row[date_idx] for row in new_rows if row}
 
-    # 기존 행 중 새 데이터 날짜에 해당하는 행 제거 (나머지는 보존)
-    kept_rows = [row for row in existing_rows if row and row[date_idx] not in new_dates]
+    # 기존 행 분리: cutoff 이전(보존) / cutoff 이후(새 데이터로 교체)
+    old_rows = [row for row in existing_rows if row and row[date_idx] < cutoff]
+    replaced_rows = [row for row in existing_rows if row and row[date_idx] >= cutoff and row[date_idx] not in new_dates]
 
-    # 보존 행 + 새 데이터 행 합치기 (날짜 오름차순 정렬)
-    merged = kept_rows + new_rows
+    # 보존(오래된 행) + 교체 안 된 기간 내 기존 행 + 새 데이터 합치기 (날짜 오름차순 정렬)
+    merged = old_rows + replaced_rows + new_rows
     merged.sort(key=lambda r: r[date_idx] if r else "")
 
     # 시트 전체 재작성 (헤더 + 병합 결과)
     ws.clear()
     ws.update(range_name="A1", values=[new_headers] + merged)
 
-    added = len(new_dates - {row[date_idx] for row in kept_rows if row})
+    added = len(new_dates - {row[date_idx] for row in existing_rows if row})
     updated = len(new_dates) - added
-    print(f"[sync] 신규 날짜 {added}일 추가, 기존 날짜 {updated}일 갱신, 보존 행 {len(kept_rows)}행")
+    print(f"[sync] cutoff: {cutoff} | 이전 보존 {len(old_rows)}행 | 신규 {added}일 추가 | 갱신 {updated}일")
 
     return len(merged)
 
@@ -257,7 +261,7 @@ def main():
     print(f"[sync] GA4에서 {len(data) - 1}행 조회 완료")
 
     # Google Sheets에 덮어쓰기
-    count = update_sheet(data)
+    count = update_sheet(data, days)
     print(f"[sync] Google Sheets에 {count}행 적재 완료")
 
 
