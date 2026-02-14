@@ -112,14 +112,12 @@ def main():
 
         render_pointclick_dashboard(pc_df)
 
-        # 2단계: 45일치 백그라운드 확장 로드
+        # 2단계: 45일치 조용히 확장 로드 (다음 인터랙션 시 반영)
         if 'pointclick' not in st.session_state['data_extended']:
-            with st.spinner("포인트클릭 전체 데이터 로딩 중..."):
-                pc_raw_full = load_sheet_data(SHEET_NAMES["포인트클릭"]["db"], recent_days=45)
-                pc_df_full = load_pointclick(pc_raw_full)
-                st.session_state['data_loaded']['pointclick'] = pc_df_full
-                st.session_state['data_extended']['pointclick'] = True
-            st.rerun()
+            pc_raw_full = load_sheet_data(SHEET_NAMES["포인트클릭"]["db"], recent_days=45)
+            pc_df_full = load_pointclick(pc_raw_full)
+            st.session_state['data_loaded']['pointclick'] = pc_df_full
+            st.session_state['data_extended']['pointclick'] = True
 
     with tab_cp:
         # 1단계: 7일치 빠른 로드
@@ -133,14 +131,12 @@ def main():
 
         render_cashplay_dashboard(cp_df)
 
-        # 2단계: 45일치 백그라운드 확장 로드
+        # 2단계: 45일치 조용히 확장 로드 (다음 인터랙션 시 반영)
         if 'cashplay' not in st.session_state['data_extended']:
-            with st.spinner("캐시플레이 전체 데이터 로딩 중..."):
-                cp_raw_full = load_sheet_data(SHEET_NAMES["캐시플레이"]["db"], recent_days=45)
-                cp_df_full = load_cashplay(cp_raw_full)
-                st.session_state['data_loaded']['cashplay'] = cp_df_full
-                st.session_state['data_extended']['cashplay'] = True
-            st.rerun()
+            cp_raw_full = load_sheet_data(SHEET_NAMES["캐시플레이"]["db"], recent_days=45)
+            cp_df_full = load_cashplay(cp_raw_full)
+            st.session_state['data_loaded']['cashplay'] = cp_df_full
+            st.session_state['data_extended']['cashplay'] = True
 
     with tab_pc_ga:
         if 'pointclick_ga' not in st.session_state['data_loaded']:
