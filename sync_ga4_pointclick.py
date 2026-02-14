@@ -35,7 +35,7 @@ SCOPES = [
 ]
 
 # GA4 수집 기간 (최근 N일)
-DEFAULT_DAYS = 45
+DEFAULT_DAYS = 7
 
 
 def get_gspread_client():
