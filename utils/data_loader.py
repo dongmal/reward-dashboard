@@ -2,6 +2,7 @@
 import streamlit as st
 import gspread
 import pandas as pd
+from datetime import date, timedelta
 from google.oauth2.service_account import Credentials
 from functools import wraps
 from .metrics import safe_divide
@@ -23,8 +24,13 @@ def safe_execution(default_return=None, error_message="오류가 발생했습니
 
 
 @st.cache_data(ttl=3600, show_spinner=False)
-def load_sheet_data(sheet_name: str, recent_rows: int = 10000) -> pd.DataFrame:
-    """Google Sheets에서 데이터 로드 (최근 N행만)"""
+def load_sheet_data(sheet_name: str, recent_days: int = 90) -> pd.DataFrame:
+    """Google Sheets에서 데이터 로드 (최근 N일 기준)
+
+    A열이 날짜(YYYY-MM-DD) 형식이라고 가정하고,
+    전체 A열을 먼저 읽어 최근 recent_days에 해당하는 행 범위만 가져옵니다.
+    날짜 파싱이 불가한 시트는 전체를 그대로 반환합니다.
+    """
     try:
         creds = Credentials.from_service_account_info(
             st.secrets["gcp_service_account"],
@@ -39,25 +45,40 @@ def load_sheet_data(sheet_name: str, recent_rows: int = 10000) -> pd.DataFrame:
             st.warning(f"시트 '{sheet_name}'에 데이터가 없습니다.")
             return pd.DataFrame()
 
-        total_rows = len(ws.col_values(1))
+        # A열 전체 읽기 (헤더 포함)
+        col_a = ws.col_values(1)
+        total_rows = len(col_a)
 
         if total_rows <= 1:
             st.warning(f"시트 '{sheet_name}'에 데이터가 없습니다.")
             return pd.DataFrame()
 
-        if total_rows <= recent_rows + 1:
-            data = ws.get_all_records()
-            if not data:
-                return pd.DataFrame()
-            return pd.DataFrame(data)
+        # 날짜 기준 필터: cutoff 이후 행만 사용
+        cutoff = date.today() - timedelta(days=recent_days)
+        data_dates = col_a[1:]  # 헤더 제외
 
-        start_row = max(2, total_rows - recent_rows + 1)
-        last_col = chr(ord('A') + len(headers) - 1) if len(headers) <= 26 else None
+        # 날짜 파싱 시도 — 실패하면 전체 반환
+        try:
+            parsed = pd.to_datetime(data_dates, errors='coerce')
+            valid_mask = parsed >= pd.Timestamp(cutoff)
+            if valid_mask.any():
+                # 유효한 첫 행 인덱스 (시트 행 번호는 2부터)
+                first_idx = int(valid_mask.idxmax())  # pandas index (0-based)
+                start_row = first_idx + 2             # 시트 1-based + 헤더 1행
+            else:
+                # cutoff 이후 데이터 없으면 전체
+                start_row = 2
+        except Exception:
+            start_row = 2
 
-        if last_col:
+        n_cols = len(headers)
+        if n_cols <= 26:
+            last_col = chr(ord('A') + n_cols - 1)
             range_str = f"A{start_row}:{last_col}{total_rows}"
         else:
-            range_str = f"A{start_row}:{total_rows}"
+            # 26컬럼 초과 시 AA, AB ... 처리
+            last_col = chr(ord('A') + (n_cols - 1) // 26 - 1) + chr(ord('A') + (n_cols - 1) % 26)
+            range_str = f"A{start_row}:{last_col}{total_rows}"
 
         raw_data = ws.get(range_str)
 
@@ -65,7 +86,7 @@ def load_sheet_data(sheet_name: str, recent_rows: int = 10000) -> pd.DataFrame:
             st.warning(f"시트 '{sheet_name}'에 데이터가 없습니다.")
             return pd.DataFrame()
 
-        df = pd.DataFrame(raw_data, columns=headers[:len(raw_data[0])] if raw_data else headers)
+        df = pd.DataFrame(raw_data, columns=headers[:len(raw_data[0])])
         return df
 
     except gspread.exceptions.WorksheetNotFound:
