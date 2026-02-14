@@ -51,9 +51,13 @@ if not user_email.endswith(f"@{ALLOWED_DOMAIN}"):
 def init_session_state():
     defaults = {
         'pc_kpi_di_from': None, 'pc_kpi_di_to': None, 'pc_kpi_seg': None,
-        'pc_tr_di_from': None, 'pc_tr_di_to': None, 'pc_tr_seg': None,
+        'pc_tr_di_from': None,  'pc_tr_di_to': None,  'pc_tr_seg': None,
         'cp_kpi_di_from': None, 'cp_kpi_di_to': None, 'cp_kpi_seg': None,
-        'cp_tr_di_from': None, 'cp_tr_di_to': None, 'cp_tr_seg': None,
+        'cp_tr_di_from': None,  'cp_tr_di_to': None,  'cp_tr_seg': None,
+        'pc_ga_traffic_di_from': None, 'pc_ga_traffic_di_to': None, 'pc_ga_traffic_seg': None,
+        'pc_ga_event_di_from':   None, 'pc_ga_event_di_to':   None, 'pc_ga_event_seg':   None,
+        'cp_ga_traffic_di_from': None, 'cp_ga_traffic_di_to': None, 'cp_ga_traffic_seg': None,
+        'cp_ga_event_di_from':   None, 'cp_ga_event_di_to':   None, 'cp_ga_event_seg':   None,
         'data_loaded': {},
     }
     for key, val in defaults.items():

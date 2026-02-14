@@ -83,13 +83,15 @@ def quick_date_picker(data_min, data_max, prefix, default_mode="이번달"):
     today = date.today()
     yesterday = today - timedelta(days=1)
 
+    prev_month_first = (today.replace(day=1) - timedelta(days=1)).replace(day=1)
     presets = {
         "오늘": (today, today),
         "어제": (yesterday, yesterday),
         "이번주": (today - timedelta(days=today.weekday()), today),
         "전주": (today - timedelta(days=today.weekday() + 7), today - timedelta(days=today.weekday() + 1)),
         "이번달": (today.replace(day=1), today),
-        "전월": ((today.replace(day=1) - timedelta(days=1)).replace(day=1), today.replace(day=1) - timedelta(days=1)),
+        "전월": (prev_month_first, today.replace(day=1) - timedelta(days=1)),
+        "이전달1일": (prev_month_first, today),
         "올해": (date(today.year, 1, 1), today),
     }
 
@@ -103,13 +105,27 @@ def quick_date_picker(data_min, data_max, prefix, default_mode="이번달"):
     key_to = f"{prefix}_di_to"
     key_seg = f"{prefix}_seg"
 
-    if st.session_state[key_from] is None:
-        ds, de = presets.get(default_mode, (today, today))
-        st.session_state[key_from] = clamp(ds)
-        st.session_state[key_to] = clamp(de)
+    def safe_date(val, fallback):
+        """튜플/리스트/None 등 오염된 session state 값을 단일 date로 정규화"""
+        if val is None:
+            return fallback
+        if isinstance(val, (list, tuple)):
+            return val[0] if val else fallback
+        if isinstance(val, date):
+            return val
+        return fallback
+
+    ds_default, de_default = presets.get(default_mode, (today, today))
+
+    raw_from = st.session_state.get(key_from)
+    raw_to = st.session_state.get(key_to)
+
+    if raw_from is None:
+        st.session_state[key_from] = clamp(ds_default)
+        st.session_state[key_to] = clamp(de_default)
     else:
-        st.session_state[key_from] = clamp(st.session_state[key_from])
-        st.session_state[key_to] = clamp(st.session_state[key_to])
+        st.session_state[key_from] = clamp(safe_date(raw_from, ds_default))
+        st.session_state[key_to] = clamp(safe_date(raw_to, de_default))
 
     current_from = st.session_state[key_from]
     current_to = st.session_state[key_to]
@@ -135,6 +151,8 @@ def quick_date_picker(data_min, data_max, prefix, default_mode="이번달"):
             st.session_state[key_from] = new_from
             st.session_state[key_to] = new_to
 
+    # key= 를 쓸 때 value= 를 함께 넘기면 충돌하므로,
+    # 위에서 session state를 단일 date로 정규화한 후 key= 만 사용.
     dc1, dc2, _ = st.columns([1, 1, 8], gap="small")
     with dc1:
         d_from = st.date_input("시작일", min_value=data_min, max_value=data_max, key=key_from)
