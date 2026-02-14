@@ -37,6 +37,8 @@ def render_pointclick_dashboard(df: pd.DataFrame):
     if sel_ad != '전체': f = f[f['ad_type'] == sel_ad]
     if sel_os != '전체': f = f[f['os'] == sel_os]
 
+    st.caption(f"[DEBUG] 데이터 범위: {dmin} ~ {dmax} / 총 {len(df)}행")
+
     @st.fragment
     def pc_kpi_section():
         st.markdown("## 📈 핵심 지표")
