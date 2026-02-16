@@ -8,7 +8,7 @@ SHEET_NAMES = {
 PASTEL = {
     'blue': '#5B9BD5', 'green': '#70AD47', 'orange': '#ED7D31',
     'yellow': '#FFC000', 'purple': '#A855F7', 'red': '#E05252',
-    'teal': '#4DB8A4', 'gray': '#A0AEC0', 'pink': '#E88B9E',
+    'teal': '#4DB8A4', 'cyan': '#22D3EE', 'gray': '#A0AEC0', 'pink': '#E88B9E',
     'indigo': '#7B8FD4', 'revenue': '#5B9BD5', 'cost': '#E05252',
     'margin': '#70AD47', 'margin_rate': '#FFC000',
     'game': '#5B9BD5', 'gathering': '#A855F7', 'iaa': '#70AD47',
