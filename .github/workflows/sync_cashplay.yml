@@ -2,8 +2,8 @@ name: Sync CashPlay Data
 
 on:
   schedule:
-    # 매일 오전 0시 UTC = 오전 9시 KST
-    - cron: '0 0 * * *'
+    # 지연 감안 UTC 19:00 설정 → 실제 실행 KST 오전 9시 전후
+    - cron: '0 19 * * *'
   workflow_dispatch:
     inputs:
       target_date:
