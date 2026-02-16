@@ -132,7 +132,6 @@ def fetch_ga4_data(property_id: str, start_date: str, end_date: str) -> list[lis
             # 페이지/메뉴 추적
             Dimension(name="pageTitle"),
             Dimension(name="pagePath"),  # UX 분석용 경로
-            Dimension(name="pageReferrer"),  # 직전 페이지 URL
 
             # 커스텀 이벤트 차원 (포인트클릭 전용 - 핵심만)
             Dimension(name="customEvent:page_name"),
