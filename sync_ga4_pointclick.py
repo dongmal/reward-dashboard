@@ -230,6 +230,7 @@ def update_sheet(data: list[list], days: int = DEFAULT_DAYS):
 
     # 시트가 비어있으면 헤더 포함 전체 쓰기
     if not existing:
+        ws.resize(rows=len(data) + 1, cols=len(data[0]))
         ws.update(range_name="A1", values=data)
         return len(new_rows)
 
@@ -240,6 +241,7 @@ def update_sheet(data: list[list], days: int = DEFAULT_DAYS):
     if existing_headers != new_headers:
         print("[sync] 헤더 변경 감지 → 전체 재작성")
         ws.clear()
+        ws.resize(rows=len(data) + 1, cols=len(data[0]))
         ws.update(range_name="A1", values=data)
         return len(new_rows)
 
@@ -260,9 +262,12 @@ def update_sheet(data: list[list], days: int = DEFAULT_DAYS):
     merged = old_rows + replaced_rows + new_rows
     merged.sort(key=lambda r: r[date_idx] if r else "")
 
+    final_data = [new_headers] + merged
+
     # 시트 전체 재작성 (헤더 + 병합 결과)
     ws.clear()
-    ws.update(range_name="A1", values=[new_headers] + merged)
+    ws.resize(rows=len(final_data) + 1, cols=len(new_headers))
+    ws.update(range_name="A1", values=final_data)
 
     added = len(new_dates - {row[date_idx] for row in existing_rows if row})
     updated = len(new_dates) - added
