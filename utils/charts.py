@@ -135,10 +135,14 @@ def quick_date_picker(data_min, data_max, prefix, default_mode="이번달"):
             current_preset = label
             break
 
+    # session state에 key가 이미 있으면 default= 파라미터와 충돌하므로,
+    # session state로만 초기값을 설정하고 default= 는 사용하지 않음.
+    if st.session_state.get(key_seg) is None:
+        st.session_state[key_seg] = current_preset
+
     selected = st.segmented_control(
         label="기간 선택",
         options=list(presets.keys()),
-        default=current_preset,
         key=key_seg,
         label_visibility="collapsed",
     )
