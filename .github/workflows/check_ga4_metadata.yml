@@ -1,0 +1,32 @@
+name: Check GA4 Metadata
+
+on:
+  workflow_dispatch:
+    inputs:
+      service:
+        description: '조회할 서비스 (pointclick 또는 cashplay)'
+        required: true
+        type: choice
+        options:
+          - pointclick
+          - cashplay
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install google-auth google-analytics-data
+
+      - name: Check GA4 Metadata
+        env:
+          GCP_SERVICE_ACCOUNT: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+          GA4_POINTCLICK_PROPERTY_ID: ${{ secrets.GA4_POINTCLICK_PROPERTY_ID }}
+          GA4_CASHPLAY_PROPERTY_ID: ${{ secrets.GA4_CASHPLAY_PROPERTY_ID }}
+        run: python check_ga4_metadata.py ${{ github.event.inputs.service }}

@@ -1,0 +1,26 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -m py_compile:*)",
+      "Bash(ls:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(git checkout:*)",
+      "Bash(git pull:*)",
+      "Bash(git fetch:*)",
+      "Bash(git merge:*)",
+      "Bash(git reset:*)",
+      "Bash(python -m streamlit:*)",
+      "Bash(python:*)",
+      "Bash(py --version)",
+      "Bash(cmd.exe /c \"python --version && python -c \"\"import streamlit; print\\(streamlit.__version__\\)\"\"\")",
+      "Bash(cmd.exe /c \"python --version\")",
+      "Bash(echo:*)",
+      "Bash(git init:*)",
+      "Bash(git remote add:*)",
+      "Bash(git config:*)",
+      "Bash(git rebase:*)"
+    ]
+  }
+}
