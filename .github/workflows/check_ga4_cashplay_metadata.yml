@@ -1,4 +1,4 @@
-name: Check GA4 Metadata (포인트클릭)
+name: Check GA4 Metadata (캐시플레이)
 
 on:
   workflow_dispatch:
@@ -16,8 +16,8 @@ jobs:
       - name: Install dependencies
         run: pip install google-auth google-analytics-data
 
-      - name: Check GA4 Metadata (포인트클릭)
+      - name: Check GA4 Metadata (캐시플레이)
         env:
           GCP_SERVICE_ACCOUNT: ${{ secrets.GCP_SERVICE_ACCOUNT }}
-          GA4_POINTCLICK_PROPERTY_ID: ${{ secrets.GA4_POINTCLICK_PROPERTY_ID }}
-        run: python check_ga4_metadata.py pointclick
+          GA4_CASHPLAY_PROPERTY_ID: ${{ secrets.GA4_CASHPLAY_PROPERTY_ID }}
+        run: python check_ga4_metadata.py cashplay
