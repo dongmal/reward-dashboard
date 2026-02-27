@@ -24,7 +24,7 @@ def safe_execution(default_return=None, error_message="오류가 발생했습니
 
 
 @st.cache_data(ttl=3600, show_spinner=False)
-def load_sheet_data(sheet_name: str, recent_days: int = 45, spreadsheet_secret_key: str = "spreadsheet_id") -> pd.DataFrame:
+def load_sheet_data(sheet_name: str, recent_days: int = 45, *, spreadsheet_secret_key: str) -> pd.DataFrame:
     """Google Sheets에서 데이터 로드 (최근 N일 기준)
 
     A열이 날짜(YYYY-MM-DD) 형식이라고 가정하고,
@@ -35,7 +35,7 @@ def load_sheet_data(sheet_name: str, recent_days: int = 45, spreadsheet_secret_k
         sheet_name: 워크시트 이름
         recent_days: 최근 N일 데이터만 로드 (기본 45일)
         spreadsheet_secret_key: st.secrets에서 사용할 스프레드시트 ID 키
-            (기본 "spreadsheet_id", 분리된 경우 "spreadsheet_id_pc_db" 등)
+            (예: "spreadsheet_id_pc_db", "spreadsheet_id_pc_ga" 등)
     """
     try:
         creds = Credentials.from_service_account_info(

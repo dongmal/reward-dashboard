@@ -37,7 +37,7 @@ ga4_cashplay_property_id = "properties/987654321"
 5. 앱 자동 재시작됨
 
 **⚠️ 주의:**
-- 기존의 `gcp_service_account`, `spreadsheet_id` 등은 **절대 삭제하지 마세요!**
+- 기존의 `gcp_service_account`, 스프레드시트 ID 등은 **절대 삭제하지 마세요!**
 - 위 2줄만 **맨 아래에 추가**하면 됩니다.
 
 ---
@@ -74,10 +74,13 @@ token_uri = "https://oauth2.googleapis.com/token"
 auth_provider_x509_cert_url = "https://www.googleapis.com/oauth2/v1/certs"
 client_x509_cert_url = "https://www.googleapis.com/robot/v1/metadata/x509/..."
 
-# Google Sheets ID (기존 설정)
-spreadsheet_id = "your-spreadsheet-id"
+# Google Sheets IDs (4개 분리)
+spreadsheet_id_pc_db = "your-pointclick-db-spreadsheet-id"
+spreadsheet_id_pc_ga = "your-pointclick-ga-spreadsheet-id"
+spreadsheet_id_cp_db = "your-cashplay-db-spreadsheet-id"
+spreadsheet_id_cp_ga = "your-cashplay-ga-spreadsheet-id"
 
-# GA4 속성 ID (신규 추가)
+# GA4 속성 ID
 ga4_pointclick_property_id = "properties/123456789"
 ga4_cashplay_property_id = "properties/987654321"
 ```

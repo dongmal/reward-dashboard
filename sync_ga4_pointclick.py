@@ -305,6 +305,8 @@ def main():
         print("[ERROR] GitHub Secret 'SPREADSHEET_ID_PC_GA' 값을 확인하세요.")
         sys.exit(1)
 
+    print(f"[sync] SPREADSHEET_ID: {SPREADSHEET_ID[:4]}...{SPREADSHEET_ID[-4:]} (len={len(SPREADSHEET_ID)})")
+
     if len(sys.argv) > 1:
         days = int(sys.argv[1])
     else:
