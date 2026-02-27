@@ -5,12 +5,13 @@
 """
 
 import os
+import sys
 import json
 import pymysql
 import gspread
 from google.oauth2.service_account import Credentials
 
-SPREADSHEET_ID = os.environ.get("SPREADSHEET_ID")
+SPREADSHEET_ID = os.environ.get("SPREADSHEET_ID", "").strip()
 MEDIA_MASTER_SHEET = "매체마스터"
 SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
 
@@ -84,8 +85,9 @@ def create_media_master(rows: list):
 
 def main():
     if not SPREADSHEET_ID:
-        print("[ERROR] SPREADSHEET_ID 환경변수가 설정되지 않았습니다.")
-        return
+        print("[ERROR] SPREADSHEET_ID 환경변수가 비어있습니다.")
+        print("[ERROR] GitHub Secret 'SPREADSHEET_ID_PC_GA' 값을 확인하세요.")
+        sys.exit(1)
 
     print(f"[sync] 매체마스터 자동 생성 시작")
 
