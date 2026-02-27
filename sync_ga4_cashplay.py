@@ -254,6 +254,12 @@ def main():
 
     if not property_id:
         print("[ERROR] GA4_CASHPLAY_PROPERTY_ID 환경변수가 설정되지 않았습니다.")
+        print("[ERROR] GitHub Secret 'GA4_CASHPLAY_PROPERTY_ID' 값을 확인하세요.")
+        sys.exit(1)
+
+    if not SPREADSHEET_ID:
+        print("[ERROR] SPREADSHEET_ID 환경변수가 비어있습니다.")
+        print("[ERROR] GitHub Secret 'SPREADSHEET_ID_CP_GA' 값을 확인하세요.")
         sys.exit(1)
 
     if len(sys.argv) > 1:

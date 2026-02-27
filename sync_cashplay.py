@@ -88,6 +88,16 @@ def check_date_exists(ws, target_date: str) -> bool:
 
 
 def main():
+    if not SOURCE_SPREADSHEET_ID:
+        print("[ERROR] SOURCE_SPREADSHEET_ID 환경변수가 비어있습니다.")
+        print("[ERROR] GitHub Secret 'SOURCE_SPREADSHEET_ID' 값을 확인하세요.")
+        sys.exit(1)
+
+    if not TARGET_SPREADSHEET_ID:
+        print("[ERROR] SPREADSHEET_ID 환경변수가 비어있습니다.")
+        print("[ERROR] GitHub Secret 'SPREADSHEET_ID_CP_DB' 값을 확인하세요.")
+        sys.exit(1)
+
     # 대상 날짜: 전일자 (또는 인자로 지정)
     if len(sys.argv) > 1:
         target_date = sys.argv[1]

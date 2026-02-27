@@ -141,7 +141,13 @@ def append_to_sheet(rows: list[list]):
 
 
 def main():
+    if not SPREADSHEET_ID:
+        print("[ERROR] SPREADSHEET_ID 환경변수가 비어있습니다.")
+        print("[ERROR] GitHub Secret 'SPREADSHEET_ID_PC_DB' 값을 확인하세요.")
+        sys.exit(1)
+
     # 대상 날짜: 전일자 (또는 인자로 지정)
+
     if len(sys.argv) > 1:
         target_date = sys.argv[1]
     else:

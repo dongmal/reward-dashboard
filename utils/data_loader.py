@@ -98,11 +98,14 @@ def load_sheet_data(sheet_name: str, recent_days: int = 45, spreadsheet_secret_k
     except gspread.exceptions.WorksheetNotFound:
         st.error(f"❌ 시트 '{sheet_name}'을 찾을 수 없습니다.")
         return pd.DataFrame()
+    except gspread.exceptions.SpreadsheetNotFound:
+        st.error(f"❌ 스프레드시트를 찾을 수 없습니다 (Secret key: '{spreadsheet_secret_key}'). Streamlit Secrets의 스프레드시트 ID를 확인하세요.")
+        return pd.DataFrame()
     except gspread.exceptions.APIError as e:
         st.error(f"❌ Google Sheets API 오류: {e}")
         return pd.DataFrame()
     except KeyError as e:
-        st.error(f"❌ 설정 오류: {e}. Secrets 설정을 확인하세요.")
+        st.error(f"❌ 설정 오류: {e} 키가 Secrets에 없습니다. .streamlit/secrets.toml 또는 Streamlit Cloud Secrets 설정을 확인하세요.")
         return pd.DataFrame()
     except Exception as e:
         st.error(f"❌ 데이터 로드 중 예상치 못한 오류: {e}")
