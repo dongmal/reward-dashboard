@@ -26,7 +26,7 @@ jobs:
 
       - name: Step 1 - Update Media Master
         env:
-          SPREADSHEET_ID: ${{ secrets.SPREADSHEET_ID }}
+          SPREADSHEET_ID: ${{ secrets.SPREADSHEET_ID_PC_GA }}
           GCP_SERVICE_ACCOUNT: ${{ secrets.GCP_SERVICE_ACCOUNT }}
           MYSQL_HOST: ${{ secrets.MYSQL_HOST }}
           MYSQL_PORT: ${{ secrets.MYSQL_PORT }}
@@ -39,7 +39,7 @@ jobs:
 
       - name: Step 2 - Sync GA4 Data
         env:
-          SPREADSHEET_ID: ${{ secrets.SPREADSHEET_ID }}
+          SPREADSHEET_ID: ${{ secrets.SPREADSHEET_ID_PC_GA }}
           GCP_SERVICE_ACCOUNT: ${{ secrets.GCP_SERVICE_ACCOUNT }}
           GA4_POINTCLICK_PROPERTY_ID: ${{ secrets.GA4_POINTCLICK_PROPERTY_ID }}
         run: |

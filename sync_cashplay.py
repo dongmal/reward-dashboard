@@ -99,9 +99,13 @@ def main():
 
     gc = get_gspread_client()
 
-    # 1. 대상 시트에서 중복 체크
+    # 1. 대상 시트에서 중복 체크 (시트 없으면 자동 생성)
     target_sh = gc.open_by_key(TARGET_SPREADSHEET_ID)
-    target_ws = target_sh.worksheet(TARGET_SHEET_NAME)
+    try:
+        target_ws = target_sh.worksheet(TARGET_SHEET_NAME)
+    except gspread.exceptions.WorksheetNotFound:
+        print(f"[sync] '{TARGET_SHEET_NAME}' 시트 없음 → 신규 생성")
+        target_ws = target_sh.add_worksheet(title=TARGET_SHEET_NAME, rows=1, cols=21)
 
     if check_date_exists(target_ws, target_date):
         print(f"[sync] {target_date} 데이터가 이미 존재합니다. 건너뜁니다.")

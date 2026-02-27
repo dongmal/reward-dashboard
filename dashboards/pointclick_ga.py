@@ -7,7 +7,7 @@ from datetime import date, timedelta
 from config.constants import PASTEL, CHART_LAYOUT
 
 
-def render_pointclick_ga_dashboard(df: pd.DataFrame):
+def render_pointclick_ga_dashboard(df: pd.DataFrame, df_user: pd.DataFrame | None = None):
     if df.empty:
         st.warning("GA4 데이터가 없습니다.")
         return
@@ -26,38 +26,47 @@ def render_pointclick_ga_dashboard(df: pd.DataFrame):
 
     target_ts = pd.Timestamp(target_date)
 
-    # ── 기준일 데이터 ────────────────────────────────────────────────
+    # ── 기준일 데이터 (이벤트) ───────────────────────────────────────
     day_df = df[df['date'] == target_ts]
 
-    # MAU: 최근 28일 activeUsers 일평균
-    cutoff_28 = target_ts - timedelta(days=27)
-    df_28 = df[(df['date'] >= cutoff_28) & (df['date'] <= target_ts)]
-    daily_dau = df_28.groupby('date')['activeUsers'].sum()
-    mau_avg = daily_dau.mean() if not daily_dau.empty else 0
+    # ── KPI: df_user 기준 (날짜당 1행 → 정확한 DAU/MAU) ─────────────
+    # df_user가 없으면(구버전 호환) 이벤트 df에서 폴백
+    has_user = df_user is not None and not df_user.empty
+    if has_user:
+        user_day = df_user[df_user['date'] == target_ts]
+        dau      = int(user_day['activeUsers'].sum())       if not user_day.empty else 0
+        mau      = int(user_day['active28DayUsers'].sum())  if not user_day.empty else 0
+        new_users = int(user_day['newUsers'].sum())          if not user_day.empty else 0
+        sessions  = int(user_day['sessions'].sum())          if not user_day.empty else 0
+        # DAU 추이: df_user 전체 사용
+        cutoff_28 = target_ts - timedelta(days=27)
+        trend_src = df_user[(df_user['date'] >= cutoff_28) & (df_user['date'] <= target_ts)]
+    else:
+        # 폴백: 이벤트 df (뻥튀기될 수 있음)
+        cutoff_28 = target_ts - timedelta(days=27)
+        df_28 = df[(df['date'] >= cutoff_28) & (df['date'] <= target_ts)]
+        dau = int(df[df['date'] == target_ts]['activeUsers'].sum()) if not day_df.empty else 0
+        mau = 0
+        new_users = int(day_df['newUsers'].sum()) if not day_df.empty else 0
+        sessions  = int(day_df['sessions'].sum())  if not day_df.empty else 0
+        trend_src = df_28
 
-    # DAU: 기준일 합계
-    dau = day_df['activeUsers'].sum() if not day_df.empty else 0
-
-    # 추가 지표 (기준일)
-    sessions = day_df['sessions'].sum() if not day_df.empty else 0
-    new_users = day_df['newUsers'].sum() if not day_df.empty else 0
-    page_views = day_df['screenPageViews'].sum() if not day_df.empty else 0
     avg_duration = day_df['averageSessionDuration'].mean() if not day_df.empty else 0
 
     # ── KPI 메트릭 ───────────────────────────────────────────────────
     st.markdown(f"## 📊 PointClick GA · 기준일: {target_date.strftime('%Y-%m-%d')}")
     c1, c2, c3, c4, c5 = st.columns(5)
-    c1.metric("DAU", f"{int(dau):,}")
-    c2.metric("MAU (28일 일평균)", f"{mau_avg:,.1f}")
-    c3.metric("세션", f"{int(sessions):,}")
-    c4.metric("신규 사용자", f"{int(new_users):,}")
+    c1.metric("DAU", f"{dau:,}")
+    c2.metric("MAU (28일 활성)", f"{mau:,}")
+    c3.metric("세션", f"{sessions:,}")
+    c4.metric("신규 사용자", f"{new_users:,}")
     c5.metric("평균 세션시간", f"{avg_duration:.0f}초")
 
     st.divider()
 
     # ── 섹션 1: DAU 추이 (최근 28일 라인 차트) ──────────────────────
     st.markdown("## DAU 추이 (최근 28일)")
-    trend_df = df_28.groupby('date').agg(
+    trend_df = trend_src.groupby('date').agg(
         DAU=('activeUsers', 'sum'),
         세션=('sessions', 'sum'),
     ).reset_index().sort_values('date')

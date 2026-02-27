@@ -2,7 +2,7 @@
 import streamlit as st
 import pandas as pd
 from datetime import datetime
-from config.constants import SHEET_NAMES, CSS_STYLE, ALLOWED_DOMAIN
+from config.constants import SHEET_NAMES, CSS_STYLE, ALLOWED_DOMAIN, SPREADSHEET_SECRET_KEY
 from utils.data_loader import load_sheet_data, load_pointclick, load_cashplay, load_ga4, load_media_master
 from dashboards import (
     render_pointclick_dashboard, render_cashplay_dashboard,
@@ -105,36 +105,54 @@ def main():
     # 1단계: 포클 7일
     if 'pointclick' not in st.session_state['data_loaded']:
         with st.spinner("포인트클릭 데이터 로딩 중..."):
-            pc_df = load_pointclick(load_sheet_data(SHEET_NAMES["포인트클릭"]["db"], recent_days=7))
+            pc_df = load_pointclick(load_sheet_data(
+                SHEET_NAMES["포인트클릭"]["db"], recent_days=7,
+                spreadsheet_secret_key=SPREADSHEET_SECRET_KEY["pc_db"]
+            ))
             st.session_state['data_loaded']['pointclick'] = pc_df
 
     # 2단계: 캐플 7일
     if 'cashplay' not in st.session_state['data_loaded']:
         with st.spinner("캐시플레이 데이터 로딩 중..."):
-            cp_df = load_cashplay(load_sheet_data(SHEET_NAMES["캐시플레이"]["db"], recent_days=7))
+            cp_df = load_cashplay(load_sheet_data(
+                SHEET_NAMES["캐시플레이"]["db"], recent_days=7,
+                spreadsheet_secret_key=SPREADSHEET_SECRET_KEY["cp_db"]
+            ))
             st.session_state['data_loaded']['cashplay'] = cp_df
 
     # 3단계: 포클 45일 (조용히 업데이트)
     if 'pointclick_45' not in st.session_state['data_extended']:
-        pc_df = load_pointclick(load_sheet_data(SHEET_NAMES["포인트클릭"]["db"], recent_days=45))
+        pc_df = load_pointclick(load_sheet_data(
+            SHEET_NAMES["포인트클릭"]["db"], recent_days=45,
+            spreadsheet_secret_key=SPREADSHEET_SECRET_KEY["pc_db"]
+        ))
         st.session_state['data_loaded']['pointclick'] = pc_df
         st.session_state['data_extended']['pointclick_45'] = True
 
     # 4단계: 캐플 45일 (조용히 업데이트)
     if 'cashplay_45' not in st.session_state['data_extended']:
-        cp_df = load_cashplay(load_sheet_data(SHEET_NAMES["캐시플레이"]["db"], recent_days=45))
+        cp_df = load_cashplay(load_sheet_data(
+            SHEET_NAMES["캐시플레이"]["db"], recent_days=45,
+            spreadsheet_secret_key=SPREADSHEET_SECRET_KEY["cp_db"]
+        ))
         st.session_state['data_loaded']['cashplay'] = cp_df
         st.session_state['data_extended']['cashplay_45'] = True
 
     # 5단계: 포클 전체 (조용히 업데이트)
     if 'pointclick_full' not in st.session_state['data_extended']:
-        pc_df = load_pointclick(load_sheet_data(SHEET_NAMES["포인트클릭"]["db"]))
+        pc_df = load_pointclick(load_sheet_data(
+            SHEET_NAMES["포인트클릭"]["db"],
+            spreadsheet_secret_key=SPREADSHEET_SECRET_KEY["pc_db"]
+        ))
         st.session_state['data_loaded']['pointclick'] = pc_df
         st.session_state['data_extended']['pointclick_full'] = True
 
     # 6단계: 캐플 전체 (조용히 업데이트)
     if 'cashplay_full' not in st.session_state['data_extended']:
-        cp_df = load_cashplay(load_sheet_data(SHEET_NAMES["캐시플레이"]["db"]))
+        cp_df = load_cashplay(load_sheet_data(
+            SHEET_NAMES["캐시플레이"]["db"],
+            spreadsheet_secret_key=SPREADSHEET_SECRET_KEY["cp_db"]
+        ))
         st.session_state['data_loaded']['cashplay'] = cp_df
         st.session_state['data_extended']['cashplay_full'] = True
 
@@ -159,17 +177,26 @@ def main():
         if 'pointclick_ga' not in st.session_state['data_loaded']:
             with st.spinner("포인트클릭 GA4 데이터 로딩 중..."):
                 try:
-                    pc_ga_raw = load_sheet_data(SHEET_NAMES["포인트클릭"]["ga"])
-                    pc_ga_df = load_ga4(pc_ga_raw)
-                    st.session_state['data_loaded']['pointclick_ga'] = pc_ga_df
+                    pc_ga_raw = load_sheet_data(
+                        SHEET_NAMES["포인트클릭"]["ga"],
+                        spreadsheet_secret_key=SPREADSHEET_SECRET_KEY["pc_ga"]
+                    )
+                    pc_ga_user_raw = load_sheet_data(
+                        SHEET_NAMES["포인트클릭"]["ga_user"],
+                        spreadsheet_secret_key=SPREADSHEET_SECRET_KEY["pc_ga"]
+                    )
+                    st.session_state['data_loaded']['pointclick_ga'] = load_ga4(pc_ga_raw)
+                    st.session_state['data_loaded']['pointclick_ga_user'] = load_ga4(pc_ga_user_raw)
                 except Exception as e:
                     st.error(f"GA4 데이터 로드 실패: {str(e)}")
                     st.session_state['data_loaded']['pointclick_ga'] = None
-        else:
-            pc_ga_df = st.session_state['data_loaded']['pointclick_ga']
+                    st.session_state['data_loaded']['pointclick_ga_user'] = None
+
+        pc_ga_df      = st.session_state['data_loaded'].get('pointclick_ga')
+        pc_ga_user_df = st.session_state['data_loaded'].get('pointclick_ga_user')
 
         if pc_ga_df is not None:
-            render_pointclick_ga_dashboard(pc_ga_df)
+            render_pointclick_ga_dashboard(pc_ga_df, pc_ga_user_df)
         else:
             st.warning("GA4 데이터를 불러올 수 없습니다.")
 
@@ -177,17 +204,26 @@ def main():
         if 'cashplay_ga' not in st.session_state['data_loaded']:
             with st.spinner("캐시플레이 GA4 데이터 로딩 중..."):
                 try:
-                    cp_ga_raw = load_sheet_data(SHEET_NAMES["캐시플레이"]["ga"])
-                    cp_ga_df = load_ga4(cp_ga_raw)
-                    st.session_state['data_loaded']['cashplay_ga'] = cp_ga_df
+                    cp_ga_raw = load_sheet_data(
+                        SHEET_NAMES["캐시플레이"]["ga"],
+                        spreadsheet_secret_key=SPREADSHEET_SECRET_KEY["cp_ga"]
+                    )
+                    cp_ga_user_raw = load_sheet_data(
+                        SHEET_NAMES["캐시플레이"]["ga_user"],
+                        spreadsheet_secret_key=SPREADSHEET_SECRET_KEY["cp_ga"]
+                    )
+                    st.session_state['data_loaded']['cashplay_ga'] = load_ga4(cp_ga_raw)
+                    st.session_state['data_loaded']['cashplay_ga_user'] = load_ga4(cp_ga_user_raw)
                 except Exception as e:
                     st.error(f"GA4 데이터 로드 실패: {str(e)}")
                     st.session_state['data_loaded']['cashplay_ga'] = None
-        else:
-            cp_ga_df = st.session_state['data_loaded']['cashplay_ga']
+                    st.session_state['data_loaded']['cashplay_ga_user'] = None
+
+        cp_ga_df      = st.session_state['data_loaded'].get('cashplay_ga')
+        cp_ga_user_df = st.session_state['data_loaded'].get('cashplay_ga_user')
 
         if cp_ga_df is not None:
-            render_cashplay_ga_dashboard(cp_ga_df)
+            render_cashplay_ga_dashboard(cp_ga_df, cp_ga_user_df)
         else:
             st.warning("GA4 데이터를 불러올 수 없습니다.")
 

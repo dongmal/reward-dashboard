@@ -1,8 +1,24 @@
 """상수 및 설정"""
 
 SHEET_NAMES = {
-    "포인트클릭": {"db": "포인트클릭_DB", "ga": "포인트클릭_GA", "media": "매체마스터"},
-    "캐시플레이": {"db": "캐시플레이_DB", "ga": "캐시플레이_GA"}
+    "포인트클릭": {
+        "db":      "포인트클릭_DB",
+        "ga":      "포인트클릭_GA",
+        "ga_user": "포인트클릭_GA_USER",
+        "media":   "매체마스터",
+    },
+    "캐시플레이": {
+        "db":      "캐시플레이_DB",
+        "ga":      "캐시플레이_GA",
+        "ga_user": "캐시플레이_GA_USER",
+    }
+}
+
+SPREADSHEET_SECRET_KEY = {
+    "pc_db": "spreadsheet_id_pc_db",
+    "pc_ga": "spreadsheet_id_pc_ga",
+    "cp_db": "spreadsheet_id_cp_db",
+    "cp_ga": "spreadsheet_id_cp_ga",
 }
 
 PASTEL = {

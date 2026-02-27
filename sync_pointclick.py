@@ -113,11 +113,29 @@ def check_date_exists(worksheet, target_date: str) -> bool:
     return target_date in date_col
 
 
+SHEET_HEADERS = [
+    "일자", "광고구분", "매체타입", "퍼블리셔타입", "광고명", "매체명", "CD",
+    "광고주명", "OS", "광고타입", "광고단가", "클릭수", "전환수", "광고비",
+    "매체수익금", "매체정산비율", "마진금액", "마진율", "CVR", "주차", "월별"
+]
+
+
+def get_or_create_worksheet(sh):
+    """시트가 없으면 헤더 포함 새로 생성, 있으면 그대로 반환."""
+    try:
+        return sh.worksheet(SHEET_NAME)
+    except gspread.exceptions.WorksheetNotFound:
+        print(f"[sync] '{SHEET_NAME}' 시트 없음 → 신규 생성")
+        ws = sh.add_worksheet(title=SHEET_NAME, rows=1, cols=len(SHEET_HEADERS))
+        ws.append_row(SHEET_HEADERS, value_input_option="USER_ENTERED")
+        return ws
+
+
 def append_to_sheet(rows: list[list]):
     """Google Sheets에 데이터를 append."""
     gc = get_gspread_client()
     sh = gc.open_by_key(SPREADSHEET_ID)
-    ws = sh.worksheet(SHEET_NAME)
+    ws = get_or_create_worksheet(sh)
     ws.append_rows(rows, value_input_option="USER_ENTERED")
     return len(rows)
 
@@ -135,7 +153,7 @@ def main():
     # 1. 중복 체크
     gc = get_gspread_client()
     sh = gc.open_by_key(SPREADSHEET_ID)
-    ws = sh.worksheet(SHEET_NAME)
+    ws = get_or_create_worksheet(sh)
 
     if check_date_exists(ws, target_date):
         print(f"[sync] {target_date} 데이터가 이미 존재합니다. 건너뜁니다.")
