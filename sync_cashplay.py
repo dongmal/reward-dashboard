@@ -16,8 +16,8 @@ from google.oauth2.service_account import Credentials
 # ============================================================
 # 설정
 # ============================================================
-SOURCE_SPREADSHEET_ID = os.environ.get("SOURCE_SPREADSHEET_ID")
-TARGET_SPREADSHEET_ID = os.environ.get("SPREADSHEET_ID")
+SOURCE_SPREADSHEET_ID = os.environ.get("SOURCE_SPREADSHEET_ID", "").strip()
+TARGET_SPREADSHEET_ID = os.environ.get("SPREADSHEET_ID", "").strip()
 SOURCE_SHEET_NAME = "DATA_통합"
 TARGET_SHEET_NAME = "캐시플레이_DB"
 SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]

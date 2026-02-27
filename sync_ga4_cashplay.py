@@ -28,7 +28,7 @@ from google.analytics.data_v1beta.types import (
 # ============================================================
 # 설정
 # ============================================================
-SPREADSHEET_ID = os.environ.get("SPREADSHEET_ID")
+SPREADSHEET_ID = os.environ.get("SPREADSHEET_ID", "").strip()
 SHEET_NAME_EVENT = "캐시플레이_GA"       # 이벤트/페이지 데이터
 SHEET_NAME_USER  = "캐시플레이_GA_USER"  # 사용자 지표 (DAU/WAU/MAU)
 INTERNAL_DOMAIN = "app.cashplay.io"

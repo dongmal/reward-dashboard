@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       days:
-        description: '수집 기간 (일). 비워두면 90일'
+        description: '수집 기간 (일). 비워두면 7일'
         required: false
         type: string
 

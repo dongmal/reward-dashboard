@@ -16,7 +16,7 @@ from google.oauth2.service_account import Credentials
 # ============================================================
 # 설정
 # ============================================================
-SPREADSHEET_ID = os.environ.get("SPREADSHEET_ID")
+SPREADSHEET_ID = os.environ.get("SPREADSHEET_ID", "").strip()
 SHEET_NAME = "포인트클릭_DB"
 SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
 
