@@ -2,8 +2,8 @@ name: Sync CashPlay GA4 Data
 
 on:
   schedule:
-    # 지연 감안 UTC 19:00 설정 → 실제 실행 KST 오전 9시 전후
-    - cron: '0 19 * * *'
+    # 매일 KST 오전 9시 (UTC 00:00)
+    - cron: '0 0 * * *'
   workflow_dispatch:
     inputs:
       days:
@@ -15,7 +15,16 @@ jobs:
   sync:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout latest code
+        uses: actions/checkout@v4
+        with:
+          ref: master
+
+      - name: Show commit info
+        run: |
+          echo "=== 실행 커밋 정보 ==="
+          git log --oneline -1
+          echo "====================="
 
       - uses: actions/setup-python@v5
         with:
@@ -30,7 +39,6 @@ jobs:
           GCP_SERVICE_ACCOUNT: ${{ secrets.GCP_SERVICE_ACCOUNT }}
           GA4_CASHPLAY_PROPERTY_ID: ${{ secrets.GA4_CASHPLAY_PROPERTY_ID }}
         run: |
-          echo "📊 GA4 데이터 수집 중..."
           if [ -n "${{ github.event.inputs.days }}" ]; then
             python sync_ga4_cashplay.py "${{ github.event.inputs.days }}"
           else
