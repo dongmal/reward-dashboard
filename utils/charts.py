@@ -120,6 +120,16 @@ def quick_date_picker(data_min, data_max, prefix, default_mode="이번달"):
     raw_from = st.session_state.get(key_from)
     raw_to = st.session_state.get(key_to)
 
+    # 데이터 범위가 확장됐는데 날짜가 data_min에 고정된 경우 자동 리셋
+    # (데이터가 처음엔 1일치만 있다가 이후 확장될 때 날짜 picker가 고정되는 문제 방지)
+    if (raw_from is not None and raw_to is not None
+            and data_min < data_max
+            and isinstance(raw_from, date) and isinstance(raw_to, date)
+            and raw_from == data_min and raw_to == data_min):
+        raw_from = None
+        raw_to = None
+        st.session_state[key_seg] = None
+
     if raw_from is None:
         st.session_state[key_from] = clamp(ds_default)
         st.session_state[key_to] = clamp(de_default)
