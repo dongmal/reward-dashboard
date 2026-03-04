@@ -1,4 +1,4 @@
-name: Migrate Google Sheets → Supabase
+name: Migrate Google Sheets to Supabase
 
 on:
   workflow_dispatch:
