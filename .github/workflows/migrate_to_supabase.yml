@@ -1,0 +1,46 @@
+name: Migrate Google Sheets → Supabase
+
+on:
+  workflow_dispatch:
+    inputs:
+      tables:
+        description: '마이그레이션할 테이블 (공백 구분). 예: pointclick_db cashplay_db | 비워두면 전체'
+        required: false
+        default: 'all'
+        type: string
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout latest code
+        uses: actions/checkout@v4
+        with:
+          ref: master
+
+      - name: Show commit info
+        run: |
+          echo "=== 실행 커밋 정보 ==="
+          git log --oneline -1
+          echo "====================="
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install supabase gspread google-auth pandas
+
+      - name: Run migration
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+          GCP_SERVICE_ACCOUNT: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+          SPREADSHEET_ID: ${{ secrets.SPREADSHEET_ID }}
+        run: |
+          TABLES="${{ github.event.inputs.tables }}"
+          if [ -z "$TABLES" ] || [ "$TABLES" = "all" ]; then
+            python migrate_to_supabase.py --tables all
+          else
+            python migrate_to_supabase.py --tables $TABLES
+          fi
