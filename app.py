@@ -138,21 +138,21 @@ def main():
         st.session_state['data_loaded']['cashplay'] = cp_df
         st.session_state['data_extended']['cashplay_45'] = True
 
-    # 5단계: 포클 전체 (조용히 업데이트)
-    if 'pointclick_full' not in st.session_state['data_extended']:
+    # 5단계: 포클 90일 (조용히 업데이트, 전체 로드 대신 90일 상한으로 속도 개선)
+    if 'pointclick_90' not in st.session_state['data_extended']:
         pc_df = load_pointclick(load_supabase_data(
-            SUPABASE_TABLES["포인트클릭"]["db"]
+            SUPABASE_TABLES["포인트클릭"]["db"], recent_days=90
         ))
         st.session_state['data_loaded']['pointclick'] = pc_df
-        st.session_state['data_extended']['pointclick_full'] = True
+        st.session_state['data_extended']['pointclick_90'] = True
 
-    # 6단계: 캐플 전체 (조용히 업데이트)
-    if 'cashplay_full' not in st.session_state['data_extended']:
+    # 6단계: 캐플 90일 (조용히 업데이트)
+    if 'cashplay_90' not in st.session_state['data_extended']:
         cp_df = load_cashplay(load_supabase_data(
-            SUPABASE_TABLES["캐시플레이"]["db"]
+            SUPABASE_TABLES["캐시플레이"]["db"], recent_days=90
         ))
         st.session_state['data_loaded']['cashplay'] = cp_df
-        st.session_state['data_extended']['cashplay_full'] = True
+        st.session_state['data_extended']['cashplay_90'] = True
 
     pc_df = st.session_state['data_loaded'].get('pointclick', pd.DataFrame())
     cp_df = st.session_state['data_loaded'].get('cashplay', pd.DataFrame())

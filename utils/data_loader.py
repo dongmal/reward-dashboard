@@ -3,6 +3,7 @@ import streamlit as st
 import pandas as pd
 from datetime import date, timedelta
 from functools import wraps
+import concurrent.futures
 from .metrics import safe_divide
 
 
@@ -23,7 +24,7 @@ def safe_execution(default_return=None, error_message="오류가 발생했습니
 
 @st.cache_data(ttl=3600, show_spinner=False)
 def load_supabase_data(table_name: str, recent_days: int = None) -> pd.DataFrame:
-    """Supabase에서 데이터 로드
+    """Supabase에서 데이터 로드 (병렬 청크 페칭으로 고속화)
 
     Args:
         table_name: Supabase 테이블명
@@ -33,29 +34,48 @@ def load_supabase_data(table_name: str, recent_days: int = None) -> pd.DataFrame
         from utils.supabase_client import get_supabase
         client = get_supabase()
 
-        # Supabase REST API 기본 제한(1000행)을 우회하기 위해 페이지네이션 적용
         CHUNK = 1000
-        all_data = []
-        offset = 0
+        cutoff = None
+        if recent_days is not None:
+            cutoff = (date.today() - timedelta(days=recent_days)).isoformat()
 
-        while True:
+        # ── 1. 총 행 수 조회 (count=exact) ──────────────────────────────────
+        count_q = client.table(table_name).select("*", count="exact").limit(0)
+        if cutoff:
+            count_q = count_q.gte("date", cutoff)
+        count_resp = count_q.execute()
+        total = count_resp.count or 0
+
+        if total == 0:
+            return pd.DataFrame()
+
+        # ── 2. 오프셋 목록 생성 ─────────────────────────────────────────────
+        offsets = list(range(0, total, CHUNK))
+
+        # ── 3. 병렬 청크 페칭 ───────────────────────────────────────────────
+        def fetch_chunk(offset: int) -> list:
             q = client.table(table_name).select("*")
-            if recent_days is not None:
-                cutoff = (date.today() - timedelta(days=recent_days)).isoformat()
+            if cutoff:
                 q = q.gte("date", cutoff)
-            response = q.order("date").range(offset, offset + CHUNK - 1).execute()
+            return q.order("date").range(offset, offset + CHUNK - 1).execute().data or []
 
-            if not response.data:
-                break
-            all_data.extend(response.data)
-            if len(response.data) < CHUNK:
-                break
-            offset += CHUNK
+        all_data: list = []
+        max_workers = min(10, len(offsets))
+        with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
+            futures = {executor.submit(fetch_chunk, off): off for off in offsets}
+            for future in concurrent.futures.as_completed(futures):
+                chunk = future.result()
+                if chunk:
+                    all_data.extend(chunk)
 
         if not all_data:
             return pd.DataFrame()
 
-        return pd.DataFrame(all_data)
+        df = pd.DataFrame(all_data)
+        # date 컬럼이 있으면 정렬 복원 (병렬 페칭으로 순서가 섞일 수 있음)
+        if 'date' in df.columns:
+            df = df.sort_values('date').reset_index(drop=True)
+        return df
 
     except KeyError as e:
         st.error(f"❌ 설정 오류: {e} 키가 Secrets에 없습니다. SUPABASE_URL / SUPABASE_KEY를 확인하세요.")
