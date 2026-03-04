@@ -33,18 +33,29 @@ def load_supabase_data(table_name: str, recent_days: int = None) -> pd.DataFrame
         from utils.supabase_client import get_supabase
         client = get_supabase()
 
-        query = client.table(table_name).select("*")
+        # Supabase REST API 기본 제한(1000행)을 우회하기 위해 페이지네이션 적용
+        CHUNK = 1000
+        all_data = []
+        offset = 0
 
-        if recent_days is not None:
-            cutoff = (date.today() - timedelta(days=recent_days)).isoformat()
-            query = query.gte("date", cutoff)
+        while True:
+            q = client.table(table_name).select("*")
+            if recent_days is not None:
+                cutoff = (date.today() - timedelta(days=recent_days)).isoformat()
+                q = q.gte("date", cutoff)
+            response = q.order("date").range(offset, offset + CHUNK - 1).execute()
 
-        response = query.order("date").execute()
+            if not response.data:
+                break
+            all_data.extend(response.data)
+            if len(response.data) < CHUNK:
+                break
+            offset += CHUNK
 
-        if not response.data:
+        if not all_data:
             return pd.DataFrame()
 
-        return pd.DataFrame(response.data)
+        return pd.DataFrame(all_data)
 
     except KeyError as e:
         st.error(f"❌ 설정 오류: {e} 키가 Secrets에 없습니다. SUPABASE_URL / SUPABASE_KEY를 확인하세요.")
