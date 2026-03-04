@@ -69,20 +69,28 @@ def main():
     # gcp_service_account 테이블 → JSON 문자열로 변환
     env["GCP_SERVICE_ACCOUNT"] = json.dumps(dict(secrets["gcp_service_account"]))
 
-    # 스프레드시트 ID (있으면 설정, 없어도 마이그레이션 시 경고만)
-    id_map = {
-        "SPREADSHEET_ID_PC_DB": "spreadsheet_id_pc_db",
-        "SPREADSHEET_ID_PC_GA": "spreadsheet_id_pc_ga",
-        "SPREADSHEET_ID_CP_DB": "spreadsheet_id_cp_db",
-        "SPREADSHEET_ID_CP_GA": "spreadsheet_id_cp_ga",
-    }
-    for env_key, secret_key in id_map.items():
-        val = secrets.get(secret_key, "").strip()
-        if val:
-            env[env_key] = val
-            print(f"[setup] {env_key} = {val[:8]}...")
-        else:
-            print(f"[warn] {secret_key} 없음 → 해당 테이블 마이그레이션 건너뜀")
+    # 스프레드시트 ID: 단일 파일 우선, 없으면 개별 ID fallback
+    sid = secrets.get("spreadsheet_id", "").strip()
+    if sid:
+        env["SPREADSHEET_ID"] = sid
+        print(f"[setup] SPREADSHEET_ID = {sid[:8]}...")
+    else:
+        # 구버전 호환: 파일이 분리된 경우 개별 ID 사용
+        fallback_map = {
+            "SPREADSHEET_ID_PC_DB": "spreadsheet_id_pc_db",
+            "SPREADSHEET_ID_PC_GA": "spreadsheet_id_pc_ga",
+            "SPREADSHEET_ID_CP_DB": "spreadsheet_id_cp_db",
+            "SPREADSHEET_ID_CP_GA": "spreadsheet_id_cp_ga",
+        }
+        found_any = False
+        for env_key, secret_key in fallback_map.items():
+            val = secrets.get(secret_key, "").strip()
+            if val:
+                env[env_key] = val
+                print(f"[setup] {env_key} = {val[:8]}...")
+                found_any = True
+        if not found_any:
+            print("[warn] spreadsheet_id (또는 개별 ID) 없음 → 마이그레이션 시 시트 읽기 실패")
 
     print(f"[setup] SUPABASE_URL = {env['SUPABASE_URL']}")
     print("[setup] 환경변수 설정 완료\n")

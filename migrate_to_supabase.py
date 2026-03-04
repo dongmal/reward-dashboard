@@ -4,16 +4,16 @@ Google Sheets → Supabase 데이터 마이그레이션 스크립트
 - 로컬 또는 GitHub Actions에서 1회 실행
 
 사용법:
-    # 환경변수 설정 후 실행
     python migrate_to_supabase.py [--tables all|pointclick_db|cashplay_db|pointclick_ga|cashplay_ga|media_master]
 
 필요 환경변수:
     SUPABASE_URL, SUPABASE_KEY
     GCP_SERVICE_ACCOUNT
-    SPREADSHEET_ID_PC_DB    - 포인트클릭 DB 스프레드시트 ID
-    SPREADSHEET_ID_PC_GA    - 포인트클릭 GA 스프레드시트 ID
-    SPREADSHEET_ID_CP_DB    - 캐시플레이 DB 스프레드시트 ID
-    SPREADSHEET_ID_CP_GA    - 캐시플레이 GA 스프레드시트 ID
+    SPREADSHEET_ID    - 모든 시트가 들어있는 스프레드시트 ID (한 파일에 시트로 구분된 경우)
+
+    ※ 스프레드시트가 파일별로 분리된 경우 개별 지정도 가능 (SPREADSHEET_ID가 없을 때 fallback):
+    SPREADSHEET_ID_PC_DB, SPREADSHEET_ID_PC_GA
+    SPREADSHEET_ID_CP_DB, SPREADSHEET_ID_CP_GA
 """
 
 import os
@@ -32,15 +32,16 @@ from supabase import create_client
 # ============================================================
 SCOPES = ["https://www.googleapis.com/auth/spreadsheets.readonly"]
 
-# Google Sheets → Supabase 테이블 매핑
+# 시트명 매핑: Supabase 테이블 → (구 env 변수명(fallback), 시트명)
+# SPREADSHEET_ID 단일 환경변수가 있으면 그것을 우선 사용
 SHEET_TO_TABLE = {
-    "pointclick_db":    ("SPREADSHEET_ID_PC_DB", "포인트클릭_DB"),
-    "cashplay_db":      ("SPREADSHEET_ID_CP_DB", "캐시플레이_DB"),
-    "pointclick_ga":    ("SPREADSHEET_ID_PC_GA", "포인트클릭_GA"),
+    "pointclick_db":      ("SPREADSHEET_ID_PC_DB", "포인트클릭_DB"),
+    "cashplay_db":        ("SPREADSHEET_ID_CP_DB", "캐시플레이_DB"),
+    "pointclick_ga":      ("SPREADSHEET_ID_PC_GA", "포인트클릭_GA"),
     "pointclick_ga_user": ("SPREADSHEET_ID_PC_GA", "포인트클릭_GA_USER"),
-    "cashplay_ga":      ("SPREADSHEET_ID_CP_GA", "캐시플레이_GA"),
-    "cashplay_ga_user": ("SPREADSHEET_ID_CP_GA", "캐시플레이_GA_USER"),
-    "media_master":     ("SPREADSHEET_ID_PC_GA", "매체마스터"),
+    "cashplay_ga":        ("SPREADSHEET_ID_CP_GA", "캐시플레이_GA"),
+    "cashplay_ga_user":   ("SPREADSHEET_ID_CP_GA", "캐시플레이_GA_USER"),
+    "media_master":       ("SPREADSHEET_ID_PC_GA", "매체마스터"),
 }
 
 # 포인트클릭 DB 컬럼 매핑 (한글 → 영어)
@@ -103,11 +104,24 @@ def get_supabase_client():
 # ============================================================
 # Google Sheets 읽기
 # ============================================================
-def read_sheet(spreadsheet_id_env: str, sheet_name: str) -> pd.DataFrame:
-    """Google Sheets에서 전체 데이터 읽기"""
-    spreadsheet_id = os.environ.get(spreadsheet_id_env, "").strip()
+def read_sheet(sheet_name: str, fallback_id_env: str = None) -> pd.DataFrame:
+    """Google Sheets에서 전체 데이터 읽기.
+
+    SPREADSHEET_ID 환경변수를 우선 사용하고,
+    없으면 fallback_id_env 이름의 개별 환경변수를 시도합니다.
+    """
+    # 단일 파일 우선
+    spreadsheet_id = os.environ.get("SPREADSHEET_ID", "").strip()
+
+    # fallback: 개별 env 변수
+    if not spreadsheet_id and fallback_id_env:
+        spreadsheet_id = os.environ.get(fallback_id_env, "").strip()
+        if spreadsheet_id:
+            print(f"[info] SPREADSHEET_ID 없음 → {fallback_id_env} 사용")
+
     if not spreadsheet_id:
-        print(f"[WARN] {spreadsheet_id_env} 환경변수가 없습니다. 건너뜁니다.")
+        missing = "SPREADSHEET_ID" + (f" / {fallback_id_env}" if fallback_id_env else "")
+        print(f"[WARN] {missing} 환경변수가 없습니다. '{sheet_name}' 건너뜁니다.")
         return pd.DataFrame()
 
     gc = get_gspread_client()
@@ -269,7 +283,7 @@ def insert_to_supabase(client, table_name: str, rows: list, on_conflict: str = N
 # ============================================================
 def migrate_pointclick_db(client):
     print("\n=== 포인트클릭 DB 마이그레이션 ===")
-    df = read_sheet("SPREADSHEET_ID_PC_DB", "포인트클릭_DB")
+    df = read_sheet("포인트클릭_DB", fallback_id_env="SPREADSHEET_ID_PC_DB")
     if df.empty:
         return
     rows = process_pointclick_db(df)
@@ -282,7 +296,7 @@ def migrate_pointclick_db(client):
 
 def migrate_cashplay_db(client):
     print("\n=== 캐시플레이 DB 마이그레이션 ===")
-    df = read_sheet("SPREADSHEET_ID_CP_DB", "캐시플레이_DB")
+    df = read_sheet("캐시플레이_DB", fallback_id_env="SPREADSHEET_ID_CP_DB")
     if df.empty:
         return
     rows = process_cashplay_db(df)
@@ -292,7 +306,7 @@ def migrate_cashplay_db(client):
 
 def migrate_pointclick_ga(client):
     print("\n=== 포인트클릭 GA 마이그레이션 ===")
-    df = read_sheet("SPREADSHEET_ID_PC_GA", "포인트클릭_GA")
+    df = read_sheet("포인트클릭_GA", fallback_id_env="SPREADSHEET_ID_PC_GA")
     if df.empty:
         return
     rows = process_ga_event(df, "pointclick_ga")
@@ -304,7 +318,7 @@ def migrate_pointclick_ga(client):
 
 def migrate_pointclick_ga_user(client):
     print("\n=== 포인트클릭 GA_USER 마이그레이션 ===")
-    df = read_sheet("SPREADSHEET_ID_PC_GA", "포인트클릭_GA_USER")
+    df = read_sheet("포인트클릭_GA_USER", fallback_id_env="SPREADSHEET_ID_PC_GA")
     if df.empty:
         return
     rows = process_ga_user(df)
@@ -314,7 +328,7 @@ def migrate_pointclick_ga_user(client):
 
 def migrate_cashplay_ga(client):
     print("\n=== 캐시플레이 GA 마이그레이션 ===")
-    df = read_sheet("SPREADSHEET_ID_CP_GA", "캐시플레이_GA")
+    df = read_sheet("캐시플레이_GA", fallback_id_env="SPREADSHEET_ID_CP_GA")
     if df.empty:
         return
     rows = process_ga_event(df, "cashplay_ga")
@@ -326,7 +340,7 @@ def migrate_cashplay_ga(client):
 
 def migrate_cashplay_ga_user(client):
     print("\n=== 캐시플레이 GA_USER 마이그레이션 ===")
-    df = read_sheet("SPREADSHEET_ID_CP_GA", "캐시플레이_GA_USER")
+    df = read_sheet("캐시플레이_GA_USER", fallback_id_env="SPREADSHEET_ID_CP_GA")
     if df.empty:
         return
     rows = process_ga_user(df)
@@ -336,7 +350,7 @@ def migrate_cashplay_ga_user(client):
 
 def migrate_media_master(client):
     print("\n=== 매체마스터 마이그레이션 ===")
-    df = read_sheet("SPREADSHEET_ID_PC_GA", "매체마스터")
+    df = read_sheet("매체마스터", fallback_id_env="SPREADSHEET_ID_PC_GA")
     if df.empty:
         return
     rows = process_media_master(df)
