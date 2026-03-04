@@ -94,7 +94,8 @@ def fetch_data_from_mysql(target_date: str) -> list[dict]:
             elif isinstance(val, (datetime, date)):
                 formatted[key] = val.strftime("%Y-%m-%d")
             elif isinstance(val, (float, Decimal)):
-                formatted[key] = round(float(val), 6)
+                f = round(float(val), 6)
+                formatted[key] = int(f) if f == int(f) else f
             else:
                 formatted[key] = val
         result.append(formatted)
