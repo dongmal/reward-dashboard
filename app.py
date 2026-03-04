@@ -98,6 +98,10 @@ def main():
             st.cache_data.clear()
             st.session_state['data_loaded'] = {}
             st.session_state['data_extended'] = {}
+            # 날짜 선택기 상태도 초기화 (데이터 범위 변경 시 반영)
+            date_keys = [k for k in st.session_state if k.endswith(('_di_from', '_di_to', '_seg'))]
+            for k in date_keys:
+                del st.session_state[k]
             st.rerun()
         st.markdown("---")
 
