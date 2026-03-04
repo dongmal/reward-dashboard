@@ -7,6 +7,7 @@
 import os
 import sys
 from datetime import datetime, date, timedelta
+from decimal import Decimal
 
 import pymysql
 from supabase import create_client
@@ -92,8 +93,8 @@ def fetch_data_from_mysql(target_date: str) -> list[dict]:
                 formatted[key] = None
             elif isinstance(val, (datetime, date)):
                 formatted[key] = val.strftime("%Y-%m-%d")
-            elif isinstance(val, float):
-                formatted[key] = round(val, 6)
+            elif isinstance(val, (float, Decimal)):
+                formatted[key] = round(float(val), 6)
             else:
                 formatted[key] = val
         result.append(formatted)
