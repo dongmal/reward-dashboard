@@ -1,24 +1,18 @@
 """상수 및 설정"""
 
-SHEET_NAMES = {
+# Supabase 테이블명
+SUPABASE_TABLES = {
     "포인트클릭": {
-        "db":      "포인트클릭_DB",
-        "ga":      "포인트클릭_GA",
-        "ga_user": "포인트클릭_GA_USER",
-        "media":   "매체마스터",
+        "db":      "pointclick_db",
+        "ga":      "pointclick_ga",
+        "ga_user": "pointclick_ga_user",
+        "media":   "media_master",
     },
     "캐시플레이": {
-        "db":      "캐시플레이_DB",
-        "ga":      "캐시플레이_GA",
-        "ga_user": "캐시플레이_GA_USER",
+        "db":      "cashplay_db",
+        "ga":      "cashplay_ga",
+        "ga_user": "cashplay_ga_user",
     }
-}
-
-SPREADSHEET_SECRET_KEY = {
-    "pc_db": "spreadsheet_id_pc_db",
-    "pc_ga": "spreadsheet_id_pc_ga",
-    "cp_db": "spreadsheet_id_cp_db",
-    "cp_ga": "spreadsheet_id_cp_ga",
 }
 
 PASTEL = {

@@ -1,6 +1,6 @@
 """
-캐시플레이_DB 시트 자동 적재 스크립트
-- 원본 관리 시트(DATA_통합)에서 전일자 데이터를 읽어 대시보드 시트에 append
+캐시플레이_DB 자동 적재 스크립트 (Supabase 버전)
+- 원본 관리 시트(DATA_통합)에서 전일자 데이터를 읽어 Supabase cashplay_db 테이블에 upsert
 - GitHub Actions에서 매일 오전 9시(KST) 실행
 """
 
@@ -12,15 +12,15 @@ from datetime import datetime, timedelta
 
 import gspread
 from google.oauth2.service_account import Credentials
+from supabase import create_client
 
 # ============================================================
 # 설정
 # ============================================================
 SOURCE_SPREADSHEET_ID = os.environ.get("SOURCE_SPREADSHEET_ID", "").strip()
-TARGET_SPREADSHEET_ID = os.environ.get("SPREADSHEET_ID", "").strip()
 SOURCE_SHEET_NAME = "DATA_통합"
-TARGET_SHEET_NAME = "캐시플레이_DB"
-SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
+TABLE_NAME = "cashplay_db"
+SCOPES = ["https://www.googleapis.com/auth/spreadsheets.readonly"]
 
 # 원본 시트 컬럼 위치 (1-based)
 DATE_COL = 2        # B열: 날짜
@@ -29,11 +29,27 @@ DATA_END_COL = 51    # AY열: 데이터 끝
 
 DATE_PATTERN = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 
+# Supabase 컬럼 순서 (원본 시트 AF~AY 순서와 일치)
+CASHPLAY_COLUMNS = [
+    "reward_paid", "reward_free", "reward_total",
+    "game_direct", "game_dsp", "game_rs", "game_acquisition", "game_total",
+    "gathering_pointclick",
+    "iaa_levelplay", "iaa_adwhale", "iaa_hubble", "iaa_total",
+    "offerwall_adpopcorn", "offerwall_pointclick", "offerwall_ive",
+    "offerwall_adforus", "offerwall_addison", "offerwall_adjo", "offerwall_total"
+]
+
 
 def get_gspread_client():
     creds_json = json.loads(os.environ["GCP_SERVICE_ACCOUNT"])
     creds = Credentials.from_service_account_info(creds_json, scopes=SCOPES)
     return gspread.authorize(creds)
+
+
+def get_supabase_client():
+    url = os.environ["SUPABASE_URL"]
+    key = os.environ["SUPABASE_KEY"]
+    return create_client(url, key)
 
 
 def fetch_from_source(gc, target_date: str) -> list | None:
@@ -72,34 +88,27 @@ def fetch_from_source(gc, target_date: str) -> list | None:
             formatted.append(0)
         else:
             try:
-                # 콤마 제거 후 숫자 변환
                 num = float(val_str.replace(",", ""))
                 formatted.append(int(num) if num == int(num) else num)
             except ValueError:
-                formatted.append(val_str)
+                formatted.append(0)
 
     return formatted
 
 
-def check_date_exists(ws, target_date: str) -> bool:
-    """대상 시트에 해당 날짜 데이터가 이미 있는지 확인."""
-    date_col = ws.col_values(1)  # 날짜 컬럼 (A열)
-    return target_date in date_col
+def check_date_exists(client, target_date: str) -> bool:
+    """Supabase 테이블에 해당 날짜 데이터가 이미 있는지 확인."""
+    response = client.table(TABLE_NAME).select("date").eq("date", target_date).limit(1).execute()
+    return len(response.data) > 0
 
 
 def main():
     if not SOURCE_SPREADSHEET_ID:
         print("[ERROR] SOURCE_SPREADSHEET_ID 환경변수가 비어있습니다.")
-        print("[ERROR] GitHub Secret 'SOURCE_SPREADSHEET_ID' 값을 확인하세요.")
         sys.exit(1)
 
-    if not TARGET_SPREADSHEET_ID:
-        print("[ERROR] SPREADSHEET_ID 환경변수가 비어있습니다.")
-        print("[ERROR] GitHub Secret 'SPREADSHEET_ID_CP_DB' 값을 확인하세요.")
-        sys.exit(1)
-
-    print(f"[sync] SOURCE_ID: {SOURCE_SPREADSHEET_ID[:4]}...{SOURCE_SPREADSHEET_ID[-4:]} (len={len(SOURCE_SPREADSHEET_ID)})")
-    print(f"[sync] TARGET_ID: {TARGET_SPREADSHEET_ID[:4]}...{TARGET_SPREADSHEET_ID[-4:]} (len={len(TARGET_SPREADSHEET_ID)})")
+    print(f"[sync] 캐시플레이 DB 동기화 시작")
+    print(f"[sync] SOURCE_ID: {SOURCE_SPREADSHEET_ID[:4]}...{SOURCE_SPREADSHEET_ID[-4:]}")
 
     # 대상 날짜: 전일자 (또는 인자로 지정)
     if len(sys.argv) > 1:
@@ -110,21 +119,15 @@ def main():
 
     print(f"[sync] 대상 날짜: {target_date}")
 
-    gc = get_gspread_client()
+    client = get_supabase_client()
 
-    # 1. 대상 시트에서 중복 체크 (시트 없으면 자동 생성)
-    target_sh = gc.open_by_key(TARGET_SPREADSHEET_ID)
-    try:
-        target_ws = target_sh.worksheet(TARGET_SHEET_NAME)
-    except gspread.exceptions.WorksheetNotFound:
-        print(f"[sync] '{TARGET_SHEET_NAME}' 시트 없음 → 신규 생성")
-        target_ws = target_sh.add_worksheet(title=TARGET_SHEET_NAME, rows=1, cols=21)
-
-    if check_date_exists(target_ws, target_date):
+    # 1. 중복 체크
+    if check_date_exists(client, target_date):
         print(f"[sync] {target_date} 데이터가 이미 존재합니다. 건너뜁니다.")
         return
 
     # 2. 원본 시트에서 데이터 가져오기
+    gc = get_gspread_client()
     data = fetch_from_source(gc, target_date)
 
     if data is None:
@@ -133,10 +136,13 @@ def main():
 
     print(f"[sync] 원본 시트에서 {len(data)}개 컬럼 조회 완료")
 
-    # 3. [날짜, 데이터...] 형태로 append
-    row = [target_date] + data
-    target_ws.append_rows([row], value_input_option="USER_ENTERED")
-    print(f"[sync] 캐시플레이_DB에 1행 적재 완료")
+    # 3. dict로 변환 후 Supabase에 upsert
+    row = {"date": target_date}
+    for i, col_name in enumerate(CASHPLAY_COLUMNS):
+        row[col_name] = data[i] if i < len(data) else 0
+
+    client.table(TABLE_NAME).upsert(row, on_conflict="date").execute()
+    print(f"[sync] Supabase {TABLE_NAME}에 1행 적재 완료")
 
 
 if __name__ == "__main__":

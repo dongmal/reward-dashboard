@@ -1,20 +1,15 @@
 """
-매체마스터 시트 자동 생성 스크립트
+매체마스터 자동 생성 스크립트 (Supabase 버전)
 - MySQL media 테이블에서 media_key, media_name 직접 조회
-- 매체마스터 시트에 저장
+- Supabase media_master 테이블에 upsert
 """
 
 import os
 import sys
-import json
 import pymysql
-import gspread
-from google.oauth2.service_account import Credentials
+from supabase import create_client
 
-SPREADSHEET_ID = os.environ.get("SPREADSHEET_ID", "").strip()
-MEDIA_MASTER_SHEET = "매체마스터"
-SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
-
+TABLE_NAME = "media_master"
 SQL_QUERY = "SELECT media_key, media_name FROM media ORDER BY media_key"
 
 
@@ -26,15 +21,14 @@ def get_mysql_connection():
         password=os.environ["MYSQL_PASSWORD"],
         database=os.environ["MYSQL_DATABASE"],
         charset="utf8mb4",
-        cursorclass=pymysql.cursors.Cursor,
+        cursorclass=pymysql.cursors.DictCursor,
     )
 
 
-def get_gspread_client():
-    """Google Sheets 클라이언트 생성"""
-    creds_json = json.loads(os.environ["GCP_SERVICE_ACCOUNT"])
-    creds = Credentials.from_service_account_info(creds_json, scopes=SCOPES)
-    return gspread.authorize(creds)
+def get_supabase_client():
+    url = os.environ["SUPABASE_URL"]
+    key = os.environ["SUPABASE_KEY"]
+    return create_client(url, key)
 
 
 def fetch_media_from_mysql() -> list:
@@ -47,59 +41,44 @@ def fetch_media_from_mysql() -> list:
     finally:
         conn.close()
 
-    print(f"[sync] MySQL에서 {len(rows)}개 매체 조회 완료")
-    return rows
+    result = []
+    for row in rows:
+        result.append({
+            "media_key": str(row["media_key"]),
+            "media_name": str(row["media_name"]) if row["media_name"] else ""
+        })
 
-
-def create_media_master(rows: list):
-    """매체마스터 시트 생성 및 데이터 저장"""
-    gc = get_gspread_client()
-    sh = gc.open_by_key(SPREADSHEET_ID)
-
-    # 시트가 없으면 생성
-    try:
-        ws = sh.worksheet(MEDIA_MASTER_SHEET)
-        print(f"[sync] 기존 '{MEDIA_MASTER_SHEET}' 시트 사용")
-    except gspread.exceptions.WorksheetNotFound:
-        ws = sh.add_worksheet(title=MEDIA_MASTER_SHEET, rows=1000, cols=5)
-        print(f"[sync] '{MEDIA_MASTER_SHEET}' 시트 생성")
-
-    # 데이터 준비 (헤더 + 데이터)
-    data = [["매체키", "매체명"]]
-    for media_key, media_name in rows:
-        data.append([str(media_key), str(media_name) if media_name else ""])
-
-    # 기존 데이터 삭제 후 새 데이터 쓰기
-    ws.clear()
-    ws.update(range_name="A1", values=data)
-
-    print(f"[sync] 매체마스터 시트에 {len(data) - 1}개 매체 저장 완료")
-
-    # 샘플 출력
-    print("\n[샘플 데이터]")
-    for row in data[:6]:  # 헤더 + 5개만 출력
-        print(f"  {str(row[0]):20} | {row[1]}")
-    if len(data) > 6:
-        print(f"  ... (총 {len(data) - 1}개)")
+    print(f"[sync] MySQL에서 {len(result)}개 매체 조회 완료")
+    return result
 
 
 def main():
-    if not SPREADSHEET_ID:
-        print("[ERROR] SPREADSHEET_ID 환경변수가 비어있습니다.")
-        print("[ERROR] GitHub Secret 'SPREADSHEET_ID_PC_GA' 값을 확인하세요.")
-        sys.exit(1)
-
     print(f"[sync] 매체마스터 자동 생성 시작")
 
-    # 1. MySQL에서 media_key, media_name 직접 조회
     rows = fetch_media_from_mysql()
 
     if not rows:
         print("[ERROR] MySQL media 테이블에 데이터가 없습니다.")
         return
 
-    # 2. 매체마스터 시트 저장
-    create_media_master(rows)
+    client = get_supabase_client()
+
+    # upsert: media_key 기준으로 insert or update
+    chunk_size = 500
+    total = 0
+    for i in range(0, len(rows), chunk_size):
+        chunk = rows[i:i + chunk_size]
+        client.table(TABLE_NAME).upsert(chunk, on_conflict="media_key").execute()
+        total += len(chunk)
+
+    print(f"[sync] Supabase {TABLE_NAME}에 {total}개 매체 upsert 완료")
+
+    # 샘플 출력
+    print("\n[샘플 데이터]")
+    for row in rows[:5]:
+        print(f"  {row['media_key']:20} | {row['media_name']}")
+    if len(rows) > 5:
+        print(f"  ... (총 {len(rows)}개)")
 
     print(f"\n[완료] 매체마스터 생성 완료!")
 

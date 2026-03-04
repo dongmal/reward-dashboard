@@ -1,19 +1,19 @@
 """
-캐시플레이_GA / 캐시플레이_GA_USER 시트 자동 적재 스크립트
-- GA4에서 전일자 데이터를 조회하여 Google Sheets에 덮어쓰기
+캐시플레이 GA4 자동 적재 스크립트 (Supabase 버전)
+- GA4에서 전일자 데이터를 조회하여 Supabase에 upsert
 - 쿼리 분리:
-    캐시플레이_GA      → 이벤트/페이지 차원 + 이벤트 지표 (eventCount, sessions 등)
-    캐시플레이_GA_USER → date 차원만 + 사용자 지표 (DAU/WAU/MAU 정확한 값)
+    cashplay_ga      → 이벤트/페이지 차원 + 이벤트 지표
+    cashplay_ga_user → date 차원만 + 사용자 지표 (DAU/WAU/MAU 정확한 값)
 - GitHub Actions에서 매일 오전 9시(KST) 실행
 """
 
 import os
-import json
 import sys
+import json
 from datetime import datetime, timedelta
 from urllib.parse import urlparse
 
-import gspread
+from supabase import create_client
 from google.oauth2.service_account import Credentials
 from google.analytics.data_v1beta import BetaAnalyticsDataClient
 from google.analytics.data_v1beta.types import (
@@ -28,35 +28,27 @@ from google.analytics.data_v1beta.types import (
 # ============================================================
 # 설정
 # ============================================================
-SPREADSHEET_ID = os.environ.get("SPREADSHEET_ID", "").strip()
-SHEET_NAME_EVENT = "캐시플레이_GA"       # 이벤트/페이지 데이터
-SHEET_NAME_USER  = "캐시플레이_GA_USER"  # 사용자 지표 (DAU/WAU/MAU)
+TABLE_EVENT = "cashplay_ga"
+TABLE_USER  = "cashplay_ga_user"
 INTERNAL_DOMAIN = "app.cashplay.io"
-SCOPES = [
-    "https://www.googleapis.com/auth/spreadsheets",
-    "https://www.googleapis.com/auth/analytics.readonly"
-]
-
-# GA4 수집 기간 (최근 N일)
 DEFAULT_DAYS = 7
 
-
-def get_gspread_client():
-    """Google Sheets 클라이언트 생성"""
-    creds_json = json.loads(os.environ["GCP_SERVICE_ACCOUNT"])
-    creds = Credentials.from_service_account_info(creds_json, scopes=SCOPES)
-    return gspread.authorize(creds)
+SCOPES = ["https://www.googleapis.com/auth/analytics.readonly"]
 
 
 def get_ga4_client():
-    """GA4 클라이언트 생성"""
     creds_json = json.loads(os.environ["GCP_SERVICE_ACCOUNT"])
     creds = Credentials.from_service_account_info(creds_json, scopes=SCOPES)
     return BetaAnalyticsDataClient(credentials=creds)
 
 
+def get_supabase_client():
+    url = os.environ["SUPABASE_URL"]
+    key = os.environ["SUPABASE_KEY"]
+    return create_client(url, key)
+
+
 def _stream_filter():
-    """캐시플레이 스트림 필터 공통"""
     return FilterExpression(
         filter=Filter(
             field_name="streamName",
@@ -68,18 +60,17 @@ def _stream_filter():
     )
 
 
-def _parse_rows(headers, response_rows):
-    """GA4 응답 rows → list[list] 변환"""
+def _parse_rows(headers: list, response_rows) -> list:
+    """GA4 응답 rows → list[dict] 변환"""
     rows = []
     for row in response_rows:
-        row_data = []
+        row_data = {}
         for i, dim_value in enumerate(row.dimension_values):
             val = dim_value.value
-            # 날짜 포맷 변환 (YYYYMMDD → YYYY-MM-DD)
-            if len(val) == 8 and val.isdigit():
+            col = headers[i]
+            if col == "date" and len(val) == 8 and val.isdigit():
                 val = f"{val[:4]}-{val[4:6]}-{val[6:]}"
-            # pageReferrer 도메인 처리
-            if headers[i] == "pageReferrer" and val:
+            if col == "pageReferrer" and val:
                 try:
                     parsed = urlparse(val)
                     if parsed.hostname and INTERNAL_DOMAIN in parsed.hostname:
@@ -88,50 +79,56 @@ def _parse_rows(headers, response_rows):
                         val = "(external)"
                 except Exception:
                     pass
-            row_data.append(val)
-        for metric_value in row.metric_values:
+            row_data[col] = val
+        for i, metric_value in enumerate(row.metric_values):
+            col = headers[len(row.dimension_values) + i]
             val = float(metric_value.value)
-            if headers[len(row_data)] == "engagementRate":
+            if col == "engagementRate":
                 val = round(val * 100, 2)
-            row_data.append(val)
+            row_data[col] = val
         rows.append(row_data)
     return rows
 
 
-def fetch_ga4_event_data(property_id: str, start_date: str, end_date: str) -> list[list]:
-    """
-    이벤트/페이지 기반 GA4 데이터 조회 → 캐시플레이_GA 시트용
+def _sanitize_col(name: str) -> str:
+    """GA4 컬럼명을 Supabase 컬럼명으로 변환 (customEvent:xxx → xxx)"""
+    if name.startswith("customEvent:"):
+        return name.split(":", 1)[1]
+    return name
 
-    Dimensions: date, eventName, pageTitle, pagePath, customEvent:page, customEvent:page_type, customEvent:button_id
-    Metrics: 이벤트·세션·참여 지표 (사용자 지표 제외)
-    """
+
+def fetch_ga4_event_data(property_id: str, start_date: str, end_date: str) -> list:
     client = get_ga4_client()
+
+    dimensions = [
+        Dimension(name="date"),
+        Dimension(name="eventName"),
+        Dimension(name="pageTitle"),
+        Dimension(name="pagePath"),
+        Dimension(name="customEvent:page"),
+        Dimension(name="customEvent:page_type"),
+        Dimension(name="customEvent:button_id"),
+    ]
+    metrics = [
+        Metric(name="eventCount"),
+        Metric(name="sessions"),
+        Metric(name="screenPageViews"),
+        Metric(name="averageSessionDuration"),
+        Metric(name="engagementRate"),
+        Metric(name="userEngagementDuration"),
+    ]
+
+    raw_headers = [d.name for d in dimensions] + [m.name for m in metrics]
+    db_headers  = [_sanitize_col(h) for h in raw_headers]
 
     request = RunReportRequest(
         property=property_id,
         date_ranges=[DateRange(start_date=start_date, end_date=end_date)],
         dimension_filter=_stream_filter(),
-        dimensions=[
-            Dimension(name="date"),
-            Dimension(name="eventName"),
-            Dimension(name="pageTitle"),
-            Dimension(name="pagePath"),
-            Dimension(name="customEvent:page"),
-            Dimension(name="customEvent:page_type"),
-            Dimension(name="customEvent:button_id"),
-        ],
-        metrics=[
-            Metric(name="eventCount"),
-            Metric(name="sessions"),
-            Metric(name="screenPageViews"),
-            Metric(name="averageSessionDuration"),
-            Metric(name="engagementRate"),
-            Metric(name="userEngagementDuration"),
-        ],
+        dimensions=dimensions,
+        metrics=metrics,
         limit=100000,
     )
-
-    headers = [dim.name for dim in request.dimensions] + [m.name for m in request.metrics]
 
     rows = []
     offset = 0
@@ -139,42 +136,39 @@ def fetch_ga4_event_data(property_id: str, start_date: str, end_date: str) -> li
         request.offset = offset
         request.limit = 100000
         response = client.run_report(request)
-        rows.extend(_parse_rows(headers, response.rows))
+        raw_rows = _parse_rows(raw_headers, response.rows)
+        for row in raw_rows:
+            converted = {new: row.get(orig) for orig, new in zip(raw_headers, db_headers)}
+            rows.append(converted)
         offset += len(response.rows)
-        print(f"[sync] 캐시플레이_GA 조회 중: {offset} / {response.row_count}행")
+        print(f"[sync] {TABLE_EVENT} 조회 중: {offset} / {response.row_count}행")
         if offset >= response.row_count:
             break
 
-    return [headers] + rows
+    return rows
 
 
-def fetch_ga4_user_data(property_id: str, start_date: str, end_date: str) -> list[list]:
-    """
-    사용자 지표 GA4 데이터 조회 → 캐시플레이_GA_USER 시트용
-
-    Dimensions: date 만 → 날짜당 1행 → DAU/WAU/MAU 정확
-    Metrics: activeUsers, active7DayUsers, active28DayUsers, newUsers, sessions
-    """
+def fetch_ga4_user_data(property_id: str, start_date: str, end_date: str) -> list:
     client = get_ga4_client()
+
+    dimensions = [Dimension(name="date")]
+    metrics = [
+        Metric(name="activeUsers"),
+        Metric(name="active7DayUsers"),
+        Metric(name="active28DayUsers"),
+        Metric(name="newUsers"),
+        Metric(name="sessions"),
+    ]
+    raw_headers = [d.name for d in dimensions] + [m.name for m in metrics]
 
     request = RunReportRequest(
         property=property_id,
         date_ranges=[DateRange(start_date=start_date, end_date=end_date)],
         dimension_filter=_stream_filter(),
-        dimensions=[
-            Dimension(name="date"),
-        ],
-        metrics=[
-            Metric(name="activeUsers"),       # DAU
-            Metric(name="active7DayUsers"),   # WAU
-            Metric(name="active28DayUsers"),  # MAU
-            Metric(name="newUsers"),
-            Metric(name="sessions"),
-        ],
+        dimensions=dimensions,
+        metrics=metrics,
         limit=100000,
     )
-
-    headers = [dim.name for dim in request.dimensions] + [m.name for m in request.metrics]
 
     rows = []
     offset = 0
@@ -182,71 +176,52 @@ def fetch_ga4_user_data(property_id: str, start_date: str, end_date: str) -> lis
         request.offset = offset
         request.limit = 100000
         response = client.run_report(request)
-        rows.extend(_parse_rows(headers, response.rows))
+        rows.extend(_parse_rows(raw_headers, response.rows))
         offset += len(response.rows)
-        print(f"[sync] 캐시플레이_GA_USER 조회 중: {offset} / {response.row_count}행")
+        print(f"[sync] {TABLE_USER} 조회 중: {offset} / {response.row_count}행")
         if offset >= response.row_count:
             break
 
-    return [headers] + rows
+    return rows
 
 
-def update_sheet(data: list[list], days: int, sheet_name: str):
-    """Google Sheets에 누적 적재 (upsert: 수집 기간 내 날짜만 교체, 그 이전 데이터는 보존)"""
-    gc = get_gspread_client()
-    sh = gc.open_by_key(SPREADSHEET_ID)
+def upsert_event_data(client, rows: list, days: int):
+    """이벤트 데이터를 날짜 기준으로 삭제 후 재삽입"""
+    if not rows:
+        print("[sync] 삽입할 이벤트 데이터 없음")
+        return 0
 
-    # 시트가 없으면 생성
-    try:
-        ws = sh.worksheet(sheet_name)
-    except gspread.exceptions.WorksheetNotFound:
-        ws = sh.add_worksheet(title=sheet_name, rows=1000, cols=20)
-        print(f"[sync] '{sheet_name}' 시트 신규 생성")
+    dates = {row["date"] for row in rows if row.get("date")}
+    for d in dates:
+        client.table(TABLE_EVENT).delete().eq("date", d).execute()
+    print(f"[sync] {TABLE_EVENT} {len(dates)}개 날짜 기존 데이터 삭제 완료")
 
-    new_headers = data[0]
-    new_rows = data[1:]
+    chunk_size = 1000
+    total = 0
+    for i in range(0, len(rows), chunk_size):
+        chunk = rows[i:i + chunk_size]
+        client.table(TABLE_EVENT).insert(chunk).execute()
+        total += len(chunk)
 
-    existing = ws.get_all_values()
+    print(f"[sync] {TABLE_EVENT}에 {total}행 적재 완료")
+    return total
 
-    # 시트가 비어있으면 헤더 포함 전체 쓰기
-    if not existing:
-        ws.resize(rows=len(data) + 1, cols=len(data[0]))
-        ws.update(range_name="A1", values=data)
-        print(f"[sync] '{sheet_name}' 첫 적재: {len(new_rows)}행")
-        return len(new_rows)
 
-    existing_headers = existing[0]
-    existing_rows = existing[1:]
+def upsert_user_data(client, rows: list):
+    """사용자 데이터 upsert (date PRIMARY KEY)"""
+    if not rows:
+        print("[sync] 삽입할 사용자 데이터 없음")
+        return 0
 
-    # 헤더가 바뀐 경우 전체 재작성
-    if existing_headers != new_headers:
-        print(f"[sync] '{sheet_name}' 헤더 변경 감지 → 전체 재작성")
-        ws.clear()
-        ws.resize(rows=len(data) + 1, cols=len(data[0]))
-        ws.update(range_name="A1", values=data)
-        return len(new_rows)
+    chunk_size = 1000
+    total = 0
+    for i in range(0, len(rows), chunk_size):
+        chunk = rows[i:i + chunk_size]
+        client.table(TABLE_USER).upsert(chunk, on_conflict="date").execute()
+        total += len(chunk)
 
-    date_idx = 0
-    cutoff = (datetime.now() - timedelta(days=days)).strftime("%Y-%m-%d")
-    new_dates = {row[date_idx] for row in new_rows if row}
-
-    old_rows = [row for row in existing_rows if row and row[date_idx] < cutoff]
-    replaced_rows = [row for row in existing_rows if row and row[date_idx] >= cutoff and row[date_idx] not in new_dates]
-
-    merged = old_rows + replaced_rows + new_rows
-    merged.sort(key=lambda r: r[date_idx] if r else "")
-
-    final_data = [new_headers] + merged
-
-    ws.clear()
-    ws.resize(rows=len(final_data) + 1, cols=len(new_headers))
-    ws.update(range_name="A1", values=final_data)
-
-    added = len(new_dates - {row[date_idx] for row in existing_rows if row})
-    updated = len(new_dates) - added
-    print(f"[sync] '{sheet_name}' cutoff: {cutoff} | 이전 보존 {len(old_rows)}행 | 신규 {added}일 | 갱신 {updated}일")
-
-    return len(merged)
+    print(f"[sync] {TABLE_USER}에 {total}행 적재 완료")
+    return total
 
 
 def main():
@@ -254,20 +229,9 @@ def main():
 
     if not property_id:
         print("[ERROR] GA4_CASHPLAY_PROPERTY_ID 환경변수가 설정되지 않았습니다.")
-        print("[ERROR] GitHub Secret 'GA4_CASHPLAY_PROPERTY_ID' 값을 확인하세요.")
         sys.exit(1)
 
-    if not SPREADSHEET_ID:
-        print("[ERROR] SPREADSHEET_ID 환경변수가 비어있습니다.")
-        print("[ERROR] GitHub Secret 'SPREADSHEET_ID_CP_GA' 값을 확인하세요.")
-        sys.exit(1)
-
-    print(f"[sync] SPREADSHEET_ID: {SPREADSHEET_ID[:4]}...{SPREADSHEET_ID[-4:]} (len={len(SPREADSHEET_ID)})")
-
-    if len(sys.argv) > 1:
-        days = int(sys.argv[1])
-    else:
-        days = DEFAULT_DAYS
+    days = int(sys.argv[1]) if len(sys.argv) > 1 else DEFAULT_DAYS
 
     end_date = datetime.now() - timedelta(days=1)
     start_date = end_date - timedelta(days=days - 1)
@@ -278,23 +242,21 @@ def main():
     print(f"[sync] 기간: {start_str} ~ {end_str} ({days}일)")
     print(f"[sync] Property ID: {property_id}")
 
-    # ── 이벤트 데이터 → 캐시플레이_GA ──────────────────────────────
-    event_data = fetch_ga4_event_data(property_id, start_str, end_str)
+    client = get_supabase_client()
 
-    if len(event_data) > 1:
-        print(f"[sync] 이벤트 데이터 {len(event_data) - 1}행 조회 완료")
-        count = update_sheet(event_data, days, SHEET_NAME_EVENT)
-        print(f"[sync] {SHEET_NAME_EVENT}에 {count}행 적재 완료")
+    # ── 이벤트 데이터 → cashplay_ga ──
+    event_rows = fetch_ga4_event_data(property_id, start_str, end_str)
+    if event_rows:
+        print(f"[sync] 이벤트 데이터 {len(event_rows)}행 조회 완료")
+        upsert_event_data(client, event_rows, days)
     else:
         print("[sync] 이벤트 데이터 없음")
 
-    # ── 사용자 데이터 → 캐시플레이_GA_USER ─────────────────────────
-    user_data = fetch_ga4_user_data(property_id, start_str, end_str)
-
-    if len(user_data) > 1:
-        print(f"[sync] 사용자 데이터 {len(user_data) - 1}행 조회 완료")
-        count = update_sheet(user_data, days, SHEET_NAME_USER)
-        print(f"[sync] {SHEET_NAME_USER}에 {count}행 적재 완료")
+    # ── 사용자 데이터 → cashplay_ga_user ──
+    user_rows = fetch_ga4_user_data(property_id, start_str, end_str)
+    if user_rows:
+        print(f"[sync] 사용자 데이터 {len(user_rows)}행 조회 완료")
+        upsert_user_data(client, user_rows)
     else:
         print("[sync] 사용자 데이터 없음")
 

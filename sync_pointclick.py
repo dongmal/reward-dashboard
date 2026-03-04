@@ -1,48 +1,44 @@
 """
-포인트클릭_DB 시트 자동 적재 스크립트
-- MySQL에서 전일자 데이터를 조회하여 Google Sheets에 append
+포인트클릭_DB 자동 적재 스크립트 (Supabase 버전)
+- MySQL에서 전일자 데이터를 조회하여 Supabase pointclick_db 테이블에 upsert
 - GitHub Actions에서 매일 오전 9시(KST) 실행
 """
 
 import os
-import json
 import sys
 from datetime import datetime, timedelta
 
 import pymysql
-import gspread
-from google.oauth2.service_account import Credentials
+from supabase import create_client
 
 # ============================================================
 # 설정
 # ============================================================
-SPREADSHEET_ID = os.environ.get("SPREADSHEET_ID", "").strip()
-SHEET_NAME = "포인트클릭_DB"
-SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
+TABLE_NAME = "pointclick_db"
 
 SQL_QUERY = """
 SELECT
-    rda.report_date as '일자',
-    CASE WHEN rda.dsp_key = 0 THEN '직거래광고' ELSE '대행광고' END AS '광고구분',
-    m.media_type as '매체타입',
-    COALESCE(p.publisher_type, '미지정') as '퍼블리셔타입',
-    a.ad_name as '광고명',
-    m.media_name as '매체명',
-    a.ad_key as 'CD',
-    a2.advertiser_name as '광고주명',
-    a.os_type as 'OS',
-    a.ad_type as '광고타입',
-    a.ad_cost as '광고단가',
-    SUM(rda.check_count) as '클릭수',
-    SUM(rda.complete_count) as '전환수',
-    SUM(rda.cost_sum) as '광고비',
-    SUM(rda.media_cost_sum) as '매체수익금',
-    SUM(rda.media_cost_sum) / NULLIF(SUM(rda.cost_sum), 0) as '매체정산비율',
-    SUM(rda.cost_sum) - SUM(rda.media_cost_sum) as '마진금액',
-    (SUM(rda.cost_sum) - SUM(rda.media_cost_sum)) / NULLIF(SUM(rda.cost_sum), 0) as '마진율',
-    SUM(rda.complete_count) / NULLIF(SUM(rda.check_count), 0) as CVR,
-    CONCAT(FLOOR((DAY(rda.report_date) - 1) / 7) + 1, '주차') AS '주차',
-    DATE_FORMAT(rda.report_date, '%%y년 %%c월') AS '월별'
+    rda.report_date as date,
+    CASE WHEN rda.dsp_key = 0 THEN '직거래광고' ELSE '대행광고' END AS ad_category,
+    m.media_type as media_type,
+    COALESCE(p.publisher_type, '미지정') as publisher_type,
+    a.ad_name as ad_name,
+    m.media_name as media_name,
+    a.ad_key as cd,
+    a2.advertiser_name as advertiser,
+    a.os_type as os,
+    a.ad_type as ad_type,
+    a.ad_cost as unit_price,
+    SUM(rda.check_count) as clicks,
+    SUM(rda.complete_count) as conversions,
+    SUM(rda.cost_sum) as ad_revenue,
+    SUM(rda.media_cost_sum) as media_cost,
+    SUM(rda.media_cost_sum) / NULLIF(SUM(rda.cost_sum), 0) as media_rate,
+    SUM(rda.cost_sum) - SUM(rda.media_cost_sum) as margin,
+    (SUM(rda.cost_sum) - SUM(rda.media_cost_sum)) / NULLIF(SUM(rda.cost_sum), 0) as margin_rate,
+    SUM(rda.complete_count) / NULLIF(SUM(rda.check_count), 0) as cvr,
+    CONCAT(FLOOR((DAY(rda.report_date) - 1) / 7) + 1, '주차') AS week,
+    DATE_FORMAT(rda.report_date, '%%y년 %%c월') AS month
 FROM report_daily_ad rda
 LEFT JOIN publisher p ON p.publisher_key = rda.publisher_key
 LEFT JOIN ad a ON a.ad_key = rda.ad_key
@@ -68,18 +64,18 @@ def get_mysql_connection():
         password=os.environ["MYSQL_PASSWORD"],
         database=os.environ["MYSQL_DATABASE"],
         charset="utf8mb4",
-        cursorclass=pymysql.cursors.Cursor,
+        cursorclass=pymysql.cursors.DictCursor,
     )
 
 
-def get_gspread_client():
-    creds_json = json.loads(os.environ["GCP_SERVICE_ACCOUNT"])
-    creds = Credentials.from_service_account_info(creds_json, scopes=SCOPES)
-    return gspread.authorize(creds)
+def get_supabase_client():
+    url = os.environ["SUPABASE_URL"]
+    key = os.environ["SUPABASE_KEY"]
+    return create_client(url, key)
 
 
-def fetch_data_from_mysql(target_date: str) -> list[list]:
-    """MySQL에서 target_date 데이터를 조회하여 리스트로 반환."""
+def fetch_data_from_mysql(target_date: str) -> list[dict]:
+    """MySQL에서 target_date 데이터를 조회하여 dict 리스트로 반환."""
     conn = get_mysql_connection()
     try:
         with conn.cursor() as cursor:
@@ -90,82 +86,62 @@ def fetch_data_from_mysql(target_date: str) -> list[list]:
 
     result = []
     for row in rows:
-        formatted = []
-        for val in row:
+        formatted = {}
+        for key, val in row.items():
             if val is None:
-                formatted.append("")
-            elif isinstance(val, (datetime,)):
-                formatted.append(val.strftime("%Y-%m-%d"))
-            elif isinstance(val, timedelta):
-                formatted.append(str(val))
+                formatted[key] = None
+            elif isinstance(val, datetime):
+                formatted[key] = val.strftime("%Y-%m-%d")
             elif isinstance(val, float):
-                formatted.append(round(val, 6))
+                formatted[key] = round(val, 6)
             else:
-                formatted.append(str(val) if not isinstance(val, (int, float)) else val)
+                formatted[key] = val
         result.append(formatted)
 
     return result
 
 
-def check_date_exists(worksheet, target_date: str) -> bool:
-    """시트에 해당 날짜 데이터가 이미 있는지 확인."""
-    date_col = worksheet.col_values(1)  # 일자 컬럼 (A열)
-    return target_date in date_col
+def check_date_exists(client, target_date: str) -> bool:
+    """Supabase 테이블에 해당 날짜 데이터가 이미 있는지 확인."""
+    response = client.table(TABLE_NAME).select("date").eq("date", target_date).limit(1).execute()
+    return len(response.data) > 0
 
 
-SHEET_HEADERS = [
-    "일자", "광고구분", "매체타입", "퍼블리셔타입", "광고명", "매체명", "CD",
-    "광고주명", "OS", "광고타입", "광고단가", "클릭수", "전환수", "광고비",
-    "매체수익금", "매체정산비율", "마진금액", "마진율", "CVR", "주차", "월별"
-]
+def delete_date_data(client, target_date: str):
+    """해당 날짜 데이터 삭제 (재적재를 위해)."""
+    client.table(TABLE_NAME).delete().eq("date", target_date).execute()
+    print(f"[sync] {target_date} 기존 데이터 삭제 완료")
 
 
-def get_or_create_worksheet(sh):
-    """시트가 없으면 헤더 포함 새로 생성, 있으면 그대로 반환."""
-    try:
-        return sh.worksheet(SHEET_NAME)
-    except gspread.exceptions.WorksheetNotFound:
-        print(f"[sync] '{SHEET_NAME}' 시트 없음 → 신규 생성")
-        ws = sh.add_worksheet(title=SHEET_NAME, rows=1, cols=len(SHEET_HEADERS))
-        ws.append_row(SHEET_HEADERS, value_input_option="USER_ENTERED")
-        return ws
-
-
-def append_to_sheet(rows: list[list]):
-    """Google Sheets에 데이터를 append."""
-    gc = get_gspread_client()
-    sh = gc.open_by_key(SPREADSHEET_ID)
-    ws = get_or_create_worksheet(sh)
-    ws.append_rows(rows, value_input_option="USER_ENTERED")
-    return len(rows)
+def insert_to_supabase(client, rows: list[dict]) -> int:
+    """Supabase에 데이터 일괄 삽입 (1000행 단위 청크)."""
+    chunk_size = 1000
+    total = 0
+    for i in range(0, len(rows), chunk_size):
+        chunk = rows[i:i + chunk_size]
+        client.table(TABLE_NAME).insert(chunk).execute()
+        total += len(chunk)
+        print(f"[sync] Supabase 삽입 중: {total}/{len(rows)}행")
+    return total
 
 
 def main():
-    if not SPREADSHEET_ID:
-        print("[ERROR] SPREADSHEET_ID 환경변수가 비어있습니다.")
-        print("[ERROR] GitHub Secret 'SPREADSHEET_ID_PC_DB' 값을 확인하세요.")
-        sys.exit(1)
-
-    print(f"[sync] SPREADSHEET_ID: {SPREADSHEET_ID[:4]}...{SPREADSHEET_ID[-4:]} (len={len(SPREADSHEET_ID)})")
-
     # 대상 날짜: 전일자 (또는 인자로 지정)
-
     if len(sys.argv) > 1:
         target_date = sys.argv[1]
     else:
         yesterday = datetime.now() - timedelta(days=1)
         target_date = yesterday.strftime("%Y-%m-%d")
 
+    print(f"[sync] 포인트클릭 DB 동기화 시작")
     print(f"[sync] 대상 날짜: {target_date}")
 
-    # 1. 중복 체크
-    gc = get_gspread_client()
-    sh = gc.open_by_key(SPREADSHEET_ID)
-    ws = get_or_create_worksheet(sh)
+    client = get_supabase_client()
 
-    if check_date_exists(ws, target_date):
-        print(f"[sync] {target_date} 데이터가 이미 존재합니다. 건너뜁니다.")
-        return
+    # 1. 중복 체크
+    if check_date_exists(client, target_date):
+        print(f"[sync] {target_date} 데이터가 이미 존재합니다. 삭제 후 재적재합니다.")
+        delete_date_data(client, target_date)
 
     # 2. MySQL에서 데이터 조회
     rows = fetch_data_from_mysql(target_date)
@@ -176,9 +152,9 @@ def main():
 
     print(f"[sync] MySQL에서 {len(rows)}행 조회 완료")
 
-    # 3. Google Sheets에 append
-    count = append_to_sheet(rows)
-    print(f"[sync] Google Sheets에 {count}행 적재 완료")
+    # 3. Supabase에 삽입
+    count = insert_to_supabase(client, rows)
+    print(f"[sync] Supabase {TABLE_NAME}에 {count}행 적재 완료")
 
 
 if __name__ == "__main__":

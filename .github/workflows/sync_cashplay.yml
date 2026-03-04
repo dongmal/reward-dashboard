@@ -2,7 +2,6 @@ name: Sync CashPlay Data
 
 on:
   schedule:
-    # 매일 KST 오전 9시 (UTC 00:00)
     - cron: '0 0 * * *'
   workflow_dispatch:
     inputs:
@@ -31,11 +30,12 @@ jobs:
           python-version: '3.11'
 
       - name: Install dependencies
-        run: pip install gspread google-auth
+        run: pip install gspread google-auth supabase
 
       - name: Run sync script
         env:
-          SPREADSHEET_ID: ${{ secrets.SPREADSHEET_ID_CP_DB }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
           SOURCE_SPREADSHEET_ID: ${{ secrets.SOURCE_SPREADSHEET_ID }}
           GCP_SERVICE_ACCOUNT: ${{ secrets.GCP_SERVICE_ACCOUNT }}
         run: |

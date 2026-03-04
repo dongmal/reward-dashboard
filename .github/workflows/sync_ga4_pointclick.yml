@@ -2,7 +2,6 @@ name: Sync PointClick GA4 Data
 
 on:
   schedule:
-    # 매일 KST 오전 9시 (UTC 00:00)
     - cron: '0 0 * * *'
   workflow_dispatch:
     inputs:
@@ -31,12 +30,12 @@ jobs:
           python-version: '3.11'
 
       - name: Install dependencies
-        run: pip install gspread google-auth google-analytics-data pymysql
+        run: pip install supabase google-auth google-analytics-data pymysql
 
       - name: Step 1 - Update Media Master
         env:
-          SPREADSHEET_ID: ${{ secrets.SPREADSHEET_ID_PC_GA }}
-          GCP_SERVICE_ACCOUNT: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
           MYSQL_HOST: ${{ secrets.MYSQL_HOST }}
           MYSQL_PORT: ${{ secrets.MYSQL_PORT }}
           MYSQL_USER: ${{ secrets.MYSQL_USER }}
@@ -46,7 +45,8 @@ jobs:
 
       - name: Step 2 - Sync GA4 Data
         env:
-          SPREADSHEET_ID: ${{ secrets.SPREADSHEET_ID_PC_GA }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
           GCP_SERVICE_ACCOUNT: ${{ secrets.GCP_SERVICE_ACCOUNT }}
           GA4_POINTCLICK_PROPERTY_ID: ${{ secrets.GA4_POINTCLICK_PROPERTY_ID }}
         run: |

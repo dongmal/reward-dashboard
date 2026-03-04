@@ -1,9 +1,7 @@
-"""데이터 로딩 및 전처리"""
+"""데이터 로딩 및 전처리 (Supabase 기반)"""
 import streamlit as st
-import gspread
 import pandas as pd
 from datetime import date, timedelta
-from google.oauth2.service_account import Credentials
 from functools import wraps
 from .metrics import safe_divide
 
@@ -24,91 +22,35 @@ def safe_execution(default_return=None, error_message="오류가 발생했습니
 
 
 @st.cache_data(ttl=3600, show_spinner=False)
-def load_sheet_data(sheet_name: str, recent_days: int = 45, *, spreadsheet_secret_key: str) -> pd.DataFrame:
-    """Google Sheets에서 데이터 로드 (최근 N일 기준)
-
-    A열이 날짜(YYYY-MM-DD) 형식이라고 가정하고,
-    전체 A열을 먼저 읽어 최근 recent_days에 해당하는 행 범위만 가져옵니다.
-    날짜 파싱이 불가한 시트는 전체를 그대로 반환합니다.
+def load_supabase_data(table_name: str, recent_days: int = None) -> pd.DataFrame:
+    """Supabase에서 데이터 로드
 
     Args:
-        sheet_name: 워크시트 이름
-        recent_days: 최근 N일 데이터만 로드 (기본 45일)
-        spreadsheet_secret_key: st.secrets에서 사용할 스프레드시트 ID 키
-            (예: "spreadsheet_id_pc_db", "spreadsheet_id_pc_ga" 등)
+        table_name: Supabase 테이블명
+        recent_days: 최근 N일만 조회 (None이면 전체)
     """
     try:
-        creds = Credentials.from_service_account_info(
-            st.secrets["gcp_service_account"],
-            scopes=["https://www.googleapis.com/auth/spreadsheets.readonly"]
-        )
-        gc = gspread.authorize(creds)
-        sh = gc.open_by_key(st.secrets[spreadsheet_secret_key])
-        ws = sh.worksheet(sheet_name)
+        from utils.supabase_client import get_supabase
+        client = get_supabase()
 
-        headers = ws.row_values(1)
-        if not headers:
-            st.warning(f"시트 '{sheet_name}'에 데이터가 없습니다.")
+        query = client.table(table_name).select("*")
+
+        if recent_days is not None:
+            cutoff = (date.today() - timedelta(days=recent_days)).isoformat()
+            query = query.gte("date", cutoff)
+
+        response = query.order("date").execute()
+
+        if not response.data:
             return pd.DataFrame()
 
-        # A열 전체 읽기 (헤더 포함)
-        col_a = ws.col_values(1)
-        total_rows = len(col_a)
+        return pd.DataFrame(response.data)
 
-        if total_rows <= 1:
-            st.warning(f"시트 '{sheet_name}'에 데이터가 없습니다.")
-            return pd.DataFrame()
-
-        # 날짜 기준 필터: cutoff 이후 행만 사용
-        cutoff = date.today() - timedelta(days=recent_days)
-        data_dates = col_a[1:]  # 헤더 제외
-
-        # 날짜 파싱 시도 — 실패하면 전체 반환
-        try:
-            parsed = pd.to_datetime(data_dates, errors='coerce')
-            valid_mask = parsed >= pd.Timestamp(cutoff)
-            if valid_mask.any():
-                # 유효한 첫 행 인덱스 (시트 행 번호는 2부터)
-                first_idx = int(valid_mask.idxmax())  # pandas index (0-based)
-                start_row = first_idx + 2             # 시트 1-based + 헤더 1행
-            else:
-                # cutoff 이후 데이터 없으면 전체
-                start_row = 2
-        except Exception:
-            start_row = 2
-
-        n_cols = len(headers)
-        if n_cols <= 26:
-            last_col = chr(ord('A') + n_cols - 1)
-            range_str = f"A{start_row}:{last_col}{total_rows}"
-        else:
-            # 26컬럼 초과 시 AA, AB ... 처리
-            last_col = chr(ord('A') + (n_cols - 1) // 26 - 1) + chr(ord('A') + (n_cols - 1) % 26)
-            range_str = f"A{start_row}:{last_col}{total_rows}"
-
-        raw_data = ws.get(range_str)
-
-        if not raw_data:
-            st.warning(f"시트 '{sheet_name}'에 데이터가 없습니다.")
-            return pd.DataFrame()
-
-        df = pd.DataFrame(raw_data, columns=headers[:len(raw_data[0])])
-        return df
-
-    except gspread.exceptions.WorksheetNotFound:
-        st.error(f"❌ 시트 '{sheet_name}'을 찾을 수 없습니다.")
-        return pd.DataFrame()
-    except gspread.exceptions.SpreadsheetNotFound:
-        st.error(f"❌ 스프레드시트를 찾을 수 없습니다 (Secret key: '{spreadsheet_secret_key}'). Streamlit Secrets의 스프레드시트 ID를 확인하세요.")
-        return pd.DataFrame()
-    except gspread.exceptions.APIError as e:
-        st.error(f"❌ Google Sheets API 오류: {e}")
-        return pd.DataFrame()
     except KeyError as e:
-        st.error(f"❌ 설정 오류: {e} 키가 Secrets에 없습니다. .streamlit/secrets.toml 또는 Streamlit Cloud Secrets 설정을 확인하세요.")
+        st.error(f"❌ 설정 오류: {e} 키가 Secrets에 없습니다. SUPABASE_URL / SUPABASE_KEY를 확인하세요.")
         return pd.DataFrame()
     except Exception as e:
-        st.error(f"❌ 데이터 로드 중 예상치 못한 오류: {e}")
+        st.error(f"❌ Supabase 데이터 로드 중 오류 [{table_name}]: {e}")
         return pd.DataFrame()
 
 
@@ -118,6 +60,7 @@ def load_pointclick(df: pd.DataFrame) -> pd.DataFrame:
     if df.empty:
         return df
 
+    # Supabase는 이미 영어 컬럼명으로 저장됨 (하위 호환: 한글 컬럼명도 처리)
     col_map = {
         '일자': 'date', '광고구분': 'ad_category', '매체타입': 'media_type',
         '퍼블리셔타입': 'publisher_type', '광고명': 'ad_name', '매체명': 'media_name',
@@ -134,12 +77,17 @@ def load_pointclick(df: pd.DataFrame) -> pd.DataFrame:
         st.error("⚠️ 유효한 날짜 데이터가 없습니다.")
         return pd.DataFrame()
 
-    numeric_cols = ['unit_price','clicks','conversions','ad_revenue','media_cost','media_rate','margin','margin_rate','cvr']
+    numeric_cols = ['unit_price', 'clicks', 'conversions', 'ad_revenue', 'media_cost',
+                    'media_rate', 'margin', 'margin_rate', 'cvr']
     for c in numeric_cols:
         if c in df.columns:
             df[c] = pd.to_numeric(df[c], errors='coerce').fillna(0)
 
     df = df[df['date'].notna()].copy()
+
+    # id 컬럼 제거 (Supabase 자동생성)
+    df = df.drop(columns=['id'], errors='ignore')
+
     return df
 
 
@@ -149,6 +97,7 @@ def load_cashplay(df: pd.DataFrame) -> pd.DataFrame:
     if df.empty:
         return df
 
+    # Supabase는 이미 영어 컬럼명으로 저장됨 (하위 호환: 한글 컬럼명도 처리)
     col_map = {
         '날짜': 'date',
         '리워드(원)_유상': 'reward_paid', '리워드(원)_무상': 'reward_free', '리워드(원)_합계': 'reward_total',
@@ -169,8 +118,9 @@ def load_cashplay(df: pd.DataFrame) -> pd.DataFrame:
         st.error("⚠️ 유효한 날짜 데이터가 없습니다.")
         return pd.DataFrame()
 
-    for c in [x for x in df.columns if x != 'date']:
-        df[c] = df[c].replace('-', 0)
+    numeric_cols = [c for c in df.columns if c != 'date']
+    for c in numeric_cols:
+        df[c] = df[c].replace('-', 0) if df[c].dtype == object else df[c]
         df[c] = pd.to_numeric(df[c], errors='coerce').fillna(0)
 
     df = df[df['date'].notna()].copy()
@@ -196,22 +146,40 @@ def load_media_master(df: pd.DataFrame) -> pd.DataFrame:
     }
     df = df.rename(columns=col_map)
 
-    # 필수 컬럼 확인
     if 'media_key' not in df.columns or 'media_name' not in df.columns:
-        st.error("⚠️ 매체 마스터에 필수 컬럼(매체키, 매체명)이 없습니다.")
+        st.error("⚠️ 매체 마스터에 필수 컬럼(media_key, media_name)이 없습니다.")
         return pd.DataFrame()
 
-    # 중복 제거 (media_key 기준)
     df = df[['media_key', 'media_name']].drop_duplicates(subset=['media_key'])
-
     return df
 
 
 @safe_execution(default_return=pd.DataFrame(), error_message="GA4 데이터 처리 중 오류")
 def load_ga4(df: pd.DataFrame) -> pd.DataFrame:
-    """GA4 데이터 전처리 (공통)"""
+    """GA4 데이터 전처리 (공통)
+
+    Supabase(PostgreSQL)는 quoted 컬럼명도 소문자로 내려줄 수 있으므로
+    camelCase 컬럼명을 복원한다.
+    """
     if df.empty:
         return df
+
+    # PostgreSQL 소문자 컬럼 → GA4 API 원본 camelCase 복원
+    camel_restore = {
+        'eventname': 'eventName',
+        'pagetitle': 'pageTitle',
+        'pagepath': 'pagePath',
+        'eventcount': 'eventCount',
+        'screenpageviews': 'screenPageViews',
+        'averagesessionduration': 'averageSessionDuration',
+        'engagementrate': 'engagementRate',
+        'userengagementduration': 'userEngagementDuration',
+        'activeusers': 'activeUsers',
+        'active7dayusers': 'active7DayUsers',
+        'active28dayusers': 'active28DayUsers',
+        'newusers': 'newUsers',
+    }
+    df = df.rename(columns={k: v for k, v in camel_restore.items() if k in df.columns})
 
     # 날짜 컬럼 처리
     if 'date' in df.columns or '날짜' in df.columns:
@@ -224,9 +192,15 @@ def load_ga4(df: pd.DataFrame) -> pd.DataFrame:
 
         df = df[df['date'].notna()].copy()
 
-    # 모든 숫자 컬럼 처리
+    # 숫자 컬럼 변환 (문자열로 저장된 경우 대비)
+    skip_cols = {'date', '날짜', 'id', 'eventName', 'pageTitle', 'pagePath',
+                 'page_name', 'page_type', 'media_key', 'media_name',
+                 'page', 'button_id'}
     for col in df.columns:
-        if col != 'date' and col != '날짜':
+        if col not in skip_cols:
             df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0)
+
+    # id 컬럼 제거 (Supabase 자동생성)
+    df = df.drop(columns=['id'], errors='ignore')
 
     return df
