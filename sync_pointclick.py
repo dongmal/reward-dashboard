@@ -6,7 +6,7 @@
 
 import os
 import sys
-from datetime import datetime, timedelta
+from datetime import datetime, date, timedelta
 
 import pymysql
 from supabase import create_client
@@ -90,7 +90,7 @@ def fetch_data_from_mysql(target_date: str) -> list[dict]:
         for key, val in row.items():
             if val is None:
                 formatted[key] = None
-            elif isinstance(val, datetime):
+            elif isinstance(val, (datetime, date)):
                 formatted[key] = val.strftime("%Y-%m-%d")
             elif isinstance(val, float):
                 formatted[key] = round(val, 6)
