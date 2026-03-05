@@ -53,8 +53,14 @@ def load_supabase_data(table_name: str, recent_days: int = None) -> pd.DataFrame
         offsets = list(range(0, total, CHUNK))
 
         # ── 3. 병렬 청크 페칭 ───────────────────────────────────────────────
+        # HTTP/2 상태 머신은 스레드 비안전 → 각 스레드마다 새 클라이언트 생성
+        supabase_url = st.secrets["SUPABASE_URL"]
+        supabase_key = st.secrets["SUPABASE_KEY"]
+
         def fetch_chunk(offset: int) -> list:
-            q = client.table(table_name).select("*")
+            from supabase import create_client
+            c = create_client(supabase_url, supabase_key)
+            q = c.table(table_name).select("*")
             if cutoff:
                 q = q.gte("date", cutoff)
             return q.order("date").range(offset, offset + CHUNK - 1).execute().data or []
