@@ -157,16 +157,24 @@ def quick_date_picker(data_min, data_max, prefix, default_mode="이번달"):
     if st.session_state.get(key_seg) is None:
         st.session_state[key_seg] = current_preset
 
+    # on_change: fragment rerun 이전에 실행되므로 rerun 1회로 즉시 반영
+    def _on_preset_change():
+        seg_val = st.session_state.get(key_seg)
+        if seg_val and seg_val in presets:
+            ps, pe = presets[seg_val]
+            st.session_state[key_from] = clamp(ps)
+            st.session_state[key_to] = clamp(pe)
+
     selected = st.segmented_control(
         label="기간 선택",
         options=list(presets.keys()),
         key=key_seg,
         label_visibility="collapsed",
+        on_change=_on_preset_change,
     )
 
-    # 프리셋 클릭 시 날짜 업데이트 후 fragment 재실행
-    # (@st.fragment 내에서 다른 widget의 key를 직접 수정해도 즉시 반영이 안 되는
-    #  Streamlit 제약 때문에 st.rerun()으로 fragment를 다시 그려야 함)
+    # on_change가 먼저 실행되므로 정상 경로에서 이 조건은 항상 False
+    # (다른 이유로 fragment가 rerun될 때 보정용)
     if selected and selected in presets:
         ps, pe = presets[selected]
         new_from = clamp(ps)
@@ -174,7 +182,6 @@ def quick_date_picker(data_min, data_max, prefix, default_mode="이번달"):
         if new_from != current_from or new_to != current_to:
             st.session_state[key_from] = new_from
             st.session_state[key_to] = new_to
-            st.rerun()
 
     key_cf_from = f"{prefix}_cf_from"
     key_cf_to = f"{prefix}_cf_to"
