@@ -1,7 +1,6 @@
 """E프로젝트 대시보드 - 메인 앱"""
 import streamlit as st
 import pandas as pd
-import concurrent.futures
 from datetime import datetime
 from config.constants import SUPABASE_TABLES, CSS_STYLE, ALLOWED_DOMAIN
 from utils.data_loader import load_supabase_data, load_pointclick, load_cashplay, load_ga4, load_media_master
@@ -121,11 +120,8 @@ def main():
                 ))
 
             if needs_pc and needs_cp:
-                with concurrent.futures.ThreadPoolExecutor(max_workers=2) as pool:
-                    fut_pc = pool.submit(_load_pc)
-                    fut_cp = pool.submit(_load_cp)
-                    st.session_state['data_loaded']['pointclick'] = fut_pc.result()
-                    st.session_state['data_loaded']['cashplay'] = fut_cp.result()
+                st.session_state['data_loaded']['pointclick'] = _load_pc()
+                st.session_state['data_loaded']['cashplay'] = _load_cp()
             elif needs_pc:
                 st.session_state['data_loaded']['pointclick'] = _load_pc()
             else:
