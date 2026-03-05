@@ -2,7 +2,7 @@ name: Sync CashPlay GA4 Data
 
 on:
   schedule:
-    - cron: '0 0 * * *'
+    - cron: '0 19 * * *'
   workflow_dispatch:
     inputs:
       days:
@@ -17,7 +17,7 @@ jobs:
       - name: Checkout latest code
         uses: actions/checkout@v4
         with:
-          ref: master
+          ref: main
 
       - name: Show commit info
         run: |
