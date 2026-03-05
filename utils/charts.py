@@ -139,11 +139,18 @@ def quick_date_picker(data_min, data_max, prefix, default_mode="이번달"):
 
     current_from = st.session_state[key_from]
     current_to = st.session_state[key_to]
+    # 2-pass 매칭: exact(unclamped) 우선 → clamped fallback
+    # data_max가 어제일 때 "오늘"(clamp→어제)이 "어제"보다 먼저 매칭되는 버그 방지
     current_preset = None
     for label, (ps, pe) in presets.items():
-        if clamp(ps) == current_from and clamp(pe) == current_to:
+        if ps == current_from and pe == current_to:
             current_preset = label
             break
+    if current_preset is None:
+        for label, (ps, pe) in presets.items():
+            if clamp(ps) == current_from and clamp(pe) == current_to:
+                current_preset = label
+                break
 
     # session state에 key가 이미 있으면 default= 파라미터와 충돌하므로,
     # session state로만 초기값을 설정하고 default= 는 사용하지 않음.
@@ -167,10 +174,28 @@ def quick_date_picker(data_min, data_max, prefix, default_mode="이번달"):
 
     # key= 를 쓸 때 value= 를 함께 넘기면 충돌하므로,
     # 위에서 session state를 단일 date로 정규화한 후 key= 만 사용.
-    dc1, dc2, _ = st.columns([1, 1, 8], gap="small")
+    dc1, dc2, dc_btn, _ = st.columns([1, 1, 0.5, 7], gap="small",
+                                      vertical_alignment="bottom")
     with dc1:
         d_from = st.date_input("시작일", min_value=data_min, max_value=data_max, key=key_from)
     with dc2:
         d_to = st.date_input("종료일", min_value=data_min, max_value=data_max, key=key_to)
+    with dc_btn:
+        btn_clicked = st.button("조회", key=f"{prefix}_query_btn", type="primary",
+                                use_container_width=True)
 
-    return d_from, d_to
+    # ── confirmed dates 패턴 ───────────────────────────────────────────
+    # 날짜 변경은 UI만 갱신, "조회" 클릭 시에만 실제 필터링 날짜 업데이트
+    key_cf_from = f"{prefix}_cf_from"
+    key_cf_to = f"{prefix}_cf_to"
+
+    # 첫 로드 시 자동 confirm (데이터 즉시 표시)
+    if key_cf_from not in st.session_state:
+        st.session_state[key_cf_from] = d_from
+        st.session_state[key_cf_to] = d_to
+
+    if btn_clicked:
+        st.session_state[key_cf_from] = d_from
+        st.session_state[key_cf_to] = d_to
+
+    return st.session_state[key_cf_from], st.session_state[key_cf_to], btn_clicked
