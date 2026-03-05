@@ -164,6 +164,9 @@ def quick_date_picker(data_min, data_max, prefix, default_mode="이번달"):
         label_visibility="collapsed",
     )
 
+    # 프리셋 클릭 시 날짜 업데이트 후 fragment 재실행
+    # (@st.fragment 내에서 다른 widget의 key를 직접 수정해도 즉시 반영이 안 되는
+    #  Streamlit 제약 때문에 st.rerun()으로 fragment를 다시 그려야 함)
     if selected and selected in presets:
         ps, pe = presets[selected]
         new_from = clamp(ps)
@@ -171,9 +174,12 @@ def quick_date_picker(data_min, data_max, prefix, default_mode="이번달"):
         if new_from != current_from or new_to != current_to:
             st.session_state[key_from] = new_from
             st.session_state[key_to] = new_to
+            st.rerun()
 
-    # key= 를 쓸 때 value= 를 함께 넘기면 충돌하므로,
-    # 위에서 session state를 단일 date로 정규화한 후 key= 만 사용.
+    key_cf_from = f"{prefix}_cf_from"
+    key_cf_to = f"{prefix}_cf_to"
+    key_querying = f"{prefix}_querying"
+
     dc1, dc2, dc_btn, _ = st.columns([1, 1, 0.5, 7], gap="small",
                                       vertical_alignment="bottom")
     with dc1:
@@ -181,21 +187,26 @@ def quick_date_picker(data_min, data_max, prefix, default_mode="이번달"):
     with dc2:
         d_to = st.date_input("종료일", min_value=data_min, max_value=data_max, key=key_to)
     with dc_btn:
+        is_querying = st.session_state.get(key_querying, False)
         btn_clicked = st.button("조회", key=f"{prefix}_query_btn", type="primary",
-                                use_container_width=True)
-
-    # ── confirmed dates 패턴 ───────────────────────────────────────────
-    # 날짜 변경은 UI만 갱신, "조회" 클릭 시에만 실제 필터링 날짜 업데이트
-    key_cf_from = f"{prefix}_cf_from"
-    key_cf_to = f"{prefix}_cf_to"
+                                use_container_width=True, disabled=is_querying)
 
     # 첫 로드 시 자동 confirm (데이터 즉시 표시)
     if key_cf_from not in st.session_state:
         st.session_state[key_cf_from] = d_from
         st.session_state[key_cf_to] = d_to
 
+    # 조회 버튼 클릭: 날짜 확정 + querying 상태 설정 후 재실행
+    # → 재실행 시 버튼이 disabled 상태로 렌더링되어 중복 클릭 방지
     if btn_clicked:
+        st.session_state[key_querying] = True
         st.session_state[key_cf_from] = d_from
         st.session_state[key_cf_to] = d_to
+        st.rerun()
 
-    return st.session_state[key_cf_from], st.session_state[key_cf_to], btn_clicked
+    # querying 상태: 대시보드에 queried=True 전달 후 플래그 해제
+    if is_querying:
+        st.session_state[key_querying] = False
+        return st.session_state[key_cf_from], st.session_state[key_cf_to], True
+
+    return st.session_state[key_cf_from], st.session_state[key_cf_to], False
