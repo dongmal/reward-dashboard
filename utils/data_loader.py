@@ -24,61 +24,62 @@ def safe_execution(default_return=None, error_message="오류가 발생했습니
 
 @st.cache_data(ttl=3600, show_spinner=False)
 def load_supabase_data(table_name: str, recent_days: int = None) -> pd.DataFrame:
-    """Supabase에서 데이터 로드 (병렬 청크 페칭으로 고속화)
+    """Supabase에서 데이터 로드 (count 쿼리 없이 병렬 청크 페칭)
 
     Args:
         table_name: Supabase 테이블명
         recent_days: 최근 N일만 조회 (None이면 전체)
     """
     try:
-        from utils.supabase_client import get_supabase
-        client = get_supabase()
+        supabase_url = st.secrets["SUPABASE_URL"]
+        supabase_key = st.secrets["SUPABASE_KEY"]
 
         CHUNK = 1000
         cutoff = None
         if recent_days is not None:
             cutoff = (date.today() - timedelta(days=recent_days)).isoformat()
 
-        # ── 1. 총 행 수 조회 (count=exact) ──────────────────────────────────
-        count_q = client.table(table_name).select("*", count="exact").limit(0)
+        # ── 1. 첫 번째 청크로 데이터 존재 확인 + 총 행 수 조회 ──────────────
+        from supabase import create_client
+        first_client = create_client(supabase_url, supabase_key)
+        first_q = first_client.table(table_name).select("*", count="exact")
         if cutoff:
-            count_q = count_q.gte("date", cutoff)
-        count_resp = count_q.execute()
-        total = count_resp.count or 0
+            first_q = first_q.gte("date", cutoff)
+        first_resp = first_q.order("date").range(0, CHUNK - 1).execute()
 
-        if total == 0:
+        first_data = first_resp.data or []
+        total = first_resp.count or len(first_data)
+
+        if not first_data:
             return pd.DataFrame()
 
-        # ── 2. 오프셋 목록 생성 ─────────────────────────────────────────────
-        offsets = list(range(0, total, CHUNK))
+        # 데이터가 1청크 이하면 바로 반환 (추가 쿼리 불필요)
+        if total <= CHUNK:
+            df = pd.DataFrame(first_data)
+            if 'date' in df.columns:
+                df = df.sort_values('date').reset_index(drop=True)
+            return df
 
-        # ── 3. 병렬 청크 페칭 ───────────────────────────────────────────────
-        # HTTP/2 상태 머신은 스레드 비안전 → 각 스레드마다 새 클라이언트 생성
-        supabase_url = st.secrets["SUPABASE_URL"]
-        supabase_key = st.secrets["SUPABASE_KEY"]
+        # ── 2. 나머지 청크 병렬 페칭 ─────────────────────────────────────────
+        remaining_offsets = list(range(CHUNK, total, CHUNK))
 
         def fetch_chunk(offset: int) -> list:
-            from supabase import create_client
             c = create_client(supabase_url, supabase_key)
             q = c.table(table_name).select("*")
             if cutoff:
                 q = q.gte("date", cutoff)
             return q.order("date").range(offset, offset + CHUNK - 1).execute().data or []
 
-        all_data: list = []
-        max_workers = min(10, len(offsets))
+        all_data: list = list(first_data)
+        max_workers = min(10, len(remaining_offsets))
         with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
-            futures = {executor.submit(fetch_chunk, off): off for off in offsets}
+            futures = {executor.submit(fetch_chunk, off): off for off in remaining_offsets}
             for future in concurrent.futures.as_completed(futures):
                 chunk = future.result()
                 if chunk:
                     all_data.extend(chunk)
 
-        if not all_data:
-            return pd.DataFrame()
-
         df = pd.DataFrame(all_data)
-        # date 컬럼이 있으면 정렬 복원 (병렬 페칭으로 순서가 섞일 수 있음)
         if 'date' in df.columns:
             df = df.sort_values('date').reset_index(drop=True)
         return df
@@ -91,6 +92,7 @@ def load_supabase_data(table_name: str, recent_days: int = None) -> pd.DataFrame
         return pd.DataFrame()
 
 
+@st.cache_data(ttl=3600, show_spinner=False)
 @safe_execution(default_return=pd.DataFrame(), error_message="포인트클릭 데이터 처리 중 오류")
 def load_pointclick(df: pd.DataFrame) -> pd.DataFrame:
     """포인트클릭 데이터 전처리"""
@@ -128,6 +130,7 @@ def load_pointclick(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
+@st.cache_data(ttl=3600, show_spinner=False)
 @safe_execution(default_return=pd.DataFrame(), error_message="캐시플레이 데이터 처리 중 오류")
 def load_cashplay(df: pd.DataFrame) -> pd.DataFrame:
     """캐시플레이 데이터 전처리"""
@@ -164,13 +167,14 @@ def load_cashplay(df: pd.DataFrame) -> pd.DataFrame:
     df['revenue_total'] = df['game_total'] + df['gathering_pointclick'] + df['iaa_total'] + df['offerwall_total']
     df['cost_total'] = df['reward_total']
     df['margin'] = df['revenue_total'] - df['cost_total']
-    df['margin_rate'] = df.apply(lambda row: safe_divide(row['margin'], row['revenue_total'], default=0, scale=100), axis=1)
+    df['margin_rate'] = (df['margin'] / df['revenue_total'].replace(0, float('nan')) * 100).fillna(0)
     df['pointclick_revenue'] = df['gathering_pointclick'] + df['offerwall_pointclick']
-    df['pointclick_ratio'] = df.apply(lambda row: safe_divide(row['pointclick_revenue'], row['revenue_total'], default=0, scale=100), axis=1)
+    df['pointclick_ratio'] = (df['pointclick_revenue'] / df['revenue_total'].replace(0, float('nan')) * 100).fillna(0)
 
     return df
 
 
+@st.cache_data(ttl=3600, show_spinner=False)
 @safe_execution(default_return=pd.DataFrame(), error_message="매체 마스터 데이터 처리 중 오류")
 def load_media_master(df: pd.DataFrame) -> pd.DataFrame:
     """매체 마스터 데이터 전처리"""
@@ -191,6 +195,7 @@ def load_media_master(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
+@st.cache_data(ttl=3600, show_spinner=False)
 @safe_execution(default_return=pd.DataFrame(), error_message="GA4 데이터 처리 중 오류")
 def load_ga4(df: pd.DataFrame) -> pd.DataFrame:
     """GA4 데이터 전처리 (공통)

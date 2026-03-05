@@ -1,6 +1,7 @@
 """E프로젝트 대시보드 - 메인 앱"""
 import streamlit as st
 import pandas as pd
+import concurrent.futures
 from datetime import datetime
 from config.constants import SUPABASE_TABLES, CSS_STYLE, ALLOWED_DOMAIN
 from utils.data_loader import load_supabase_data, load_pointclick, load_cashplay, load_ga4, load_media_master
@@ -68,7 +69,6 @@ def init_session_state():
         'cp_v2_button_di_from':  None, 'cp_v2_button_di_to':  None, 'cp_v2_button_seg':  None,
         'cp_v2_heatmap_di_from': None, 'cp_v2_heatmap_di_to': None, 'cp_v2_heatmap_seg': None,
         'data_loaded': {},
-        'data_extended': {},
     }
     for key, val in defaults.items():
         if key not in st.session_state:
@@ -97,7 +97,6 @@ def main():
         if st.button("🔄 데이터 새로고침", width='stretch'):
             st.cache_data.clear()
             st.session_state['data_loaded'] = {}
-            st.session_state['data_extended'] = {}
             # 날짜 선택기 상태도 초기화 (데이터 범위 변경 시 반영)
             date_keys = [k for k in st.session_state if k.endswith(('_di_from', '_di_to', '_seg'))]
             for k in date_keys:
@@ -105,54 +104,32 @@ def main():
             st.rerun()
         st.markdown("---")
 
-    # ── 단계별 데이터 로딩 (탭 렌더 전에 순서대로 처리) ──────────────────
-    # 1단계: 포클 7일
-    if 'pointclick' not in st.session_state['data_loaded']:
-        with st.spinner("포인트클릭 데이터 로딩 중..."):
-            pc_df = load_pointclick(load_supabase_data(
-                SUPABASE_TABLES["포인트클릭"]["db"], recent_days=7
-            ))
-            st.session_state['data_loaded']['pointclick'] = pc_df
+    # ── 데이터 로딩 (90일분 1회, 병렬) ───────────────────────────────────
+    needs_pc = 'pointclick' not in st.session_state['data_loaded']
+    needs_cp = 'cashplay' not in st.session_state['data_loaded']
 
-    # 2단계: 캐플 7일
-    if 'cashplay' not in st.session_state['data_loaded']:
-        with st.spinner("캐시플레이 데이터 로딩 중..."):
-            cp_df = load_cashplay(load_supabase_data(
-                SUPABASE_TABLES["캐시플레이"]["db"], recent_days=7
-            ))
-            st.session_state['data_loaded']['cashplay'] = cp_df
+    if needs_pc or needs_cp:
+        with st.spinner("데이터 로딩 중..."):
+            def _load_pc():
+                return load_pointclick(load_supabase_data(
+                    SUPABASE_TABLES["포인트클릭"]["db"], recent_days=90
+                ))
 
-    # 3단계: 포클 45일 (조용히 업데이트)
-    if 'pointclick_45' not in st.session_state['data_extended']:
-        pc_df = load_pointclick(load_supabase_data(
-            SUPABASE_TABLES["포인트클릭"]["db"], recent_days=45
-        ))
-        st.session_state['data_loaded']['pointclick'] = pc_df
-        st.session_state['data_extended']['pointclick_45'] = True
+            def _load_cp():
+                return load_cashplay(load_supabase_data(
+                    SUPABASE_TABLES["캐시플레이"]["db"], recent_days=90
+                ))
 
-    # 4단계: 캐플 45일 (조용히 업데이트)
-    if 'cashplay_45' not in st.session_state['data_extended']:
-        cp_df = load_cashplay(load_supabase_data(
-            SUPABASE_TABLES["캐시플레이"]["db"], recent_days=45
-        ))
-        st.session_state['data_loaded']['cashplay'] = cp_df
-        st.session_state['data_extended']['cashplay_45'] = True
-
-    # 5단계: 포클 90일 (조용히 업데이트, 전체 로드 대신 90일 상한으로 속도 개선)
-    if 'pointclick_90' not in st.session_state['data_extended']:
-        pc_df = load_pointclick(load_supabase_data(
-            SUPABASE_TABLES["포인트클릭"]["db"], recent_days=90
-        ))
-        st.session_state['data_loaded']['pointclick'] = pc_df
-        st.session_state['data_extended']['pointclick_90'] = True
-
-    # 6단계: 캐플 90일 (조용히 업데이트)
-    if 'cashplay_90' not in st.session_state['data_extended']:
-        cp_df = load_cashplay(load_supabase_data(
-            SUPABASE_TABLES["캐시플레이"]["db"], recent_days=90
-        ))
-        st.session_state['data_loaded']['cashplay'] = cp_df
-        st.session_state['data_extended']['cashplay_90'] = True
+            if needs_pc and needs_cp:
+                with concurrent.futures.ThreadPoolExecutor(max_workers=2) as pool:
+                    fut_pc = pool.submit(_load_pc)
+                    fut_cp = pool.submit(_load_cp)
+                    st.session_state['data_loaded']['pointclick'] = fut_pc.result()
+                    st.session_state['data_loaded']['cashplay'] = fut_cp.result()
+            elif needs_pc:
+                st.session_state['data_loaded']['pointclick'] = _load_pc()
+            else:
+                st.session_state['data_loaded']['cashplay'] = _load_cp()
 
     pc_df = st.session_state['data_loaded'].get('pointclick', pd.DataFrame())
     cp_df = st.session_state['data_loaded'].get('cashplay', pd.DataFrame())
@@ -175,8 +152,8 @@ def main():
         if 'pointclick_ga' not in st.session_state['data_loaded']:
             with st.spinner("포인트클릭 GA4 데이터 로딩 중..."):
                 try:
-                    pc_ga_raw = load_supabase_data(SUPABASE_TABLES["포인트클릭"]["ga"])
-                    pc_ga_user_raw = load_supabase_data(SUPABASE_TABLES["포인트클릭"]["ga_user"])
+                    pc_ga_raw = load_supabase_data(SUPABASE_TABLES["포인트클릭"]["ga"], recent_days=90)
+                    pc_ga_user_raw = load_supabase_data(SUPABASE_TABLES["포인트클릭"]["ga_user"], recent_days=90)
                     st.session_state['data_loaded']['pointclick_ga'] = load_ga4(pc_ga_raw)
                     st.session_state['data_loaded']['pointclick_ga_user'] = load_ga4(pc_ga_user_raw)
                 except Exception as e:
@@ -196,8 +173,8 @@ def main():
         if 'cashplay_ga' not in st.session_state['data_loaded']:
             with st.spinner("캐시플레이 GA4 데이터 로딩 중..."):
                 try:
-                    cp_ga_raw = load_supabase_data(SUPABASE_TABLES["캐시플레이"]["ga"])
-                    cp_ga_user_raw = load_supabase_data(SUPABASE_TABLES["캐시플레이"]["ga_user"])
+                    cp_ga_raw = load_supabase_data(SUPABASE_TABLES["캐시플레이"]["ga"], recent_days=90)
+                    cp_ga_user_raw = load_supabase_data(SUPABASE_TABLES["캐시플레이"]["ga_user"], recent_days=90)
                     st.session_state['data_loaded']['cashplay_ga'] = load_ga4(cp_ga_raw)
                     st.session_state['data_loaded']['cashplay_ga_user'] = load_ga4(cp_ga_user_raw)
                 except Exception as e:
