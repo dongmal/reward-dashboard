@@ -8,7 +8,9 @@ import os
 import json
 import re
 import sys
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
+
+KST = timezone(timedelta(hours=9))
 
 import gspread
 from google.oauth2.service_account import Credentials
@@ -114,7 +116,7 @@ def main():
     if len(sys.argv) > 1:
         target_date = sys.argv[1]
     else:
-        yesterday = datetime.now() - timedelta(days=1)
+        yesterday = datetime.now(KST) - timedelta(days=1)
         target_date = yesterday.strftime("%Y-%m-%d")
 
     print(f"[sync] 대상 날짜: {target_date}")

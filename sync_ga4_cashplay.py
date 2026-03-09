@@ -10,7 +10,9 @@
 import os
 import sys
 import json
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
+
+KST = timezone(timedelta(hours=9))
 from urllib.parse import urlparse
 
 from supabase import create_client
@@ -233,7 +235,7 @@ def main():
 
     days = int(sys.argv[1]) if len(sys.argv) > 1 else DEFAULT_DAYS
 
-    end_date = datetime.now() - timedelta(days=1)
+    end_date = datetime.now(KST) - timedelta(days=1)
     start_date = end_date - timedelta(days=days - 1)
     start_str = start_date.strftime("%Y-%m-%d")
     end_str = end_date.strftime("%Y-%m-%d")

@@ -6,7 +6,9 @@
 
 import os
 import sys
-from datetime import datetime, date, timedelta
+from datetime import datetime, date, timedelta, timezone
+
+KST = timezone(timedelta(hours=9))
 from decimal import Decimal
 
 import pymysql
@@ -132,7 +134,7 @@ def main():
     if len(sys.argv) > 1:
         target_date = sys.argv[1]
     else:
-        yesterday = datetime.now() - timedelta(days=1)
+        yesterday = datetime.now(KST) - timedelta(days=1)
         target_date = yesterday.strftime("%Y-%m-%d")
 
     print(f"[sync] 포인트클릭 DB 동기화 시작")
