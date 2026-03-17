@@ -26,8 +26,8 @@ SCOPES = ["https://www.googleapis.com/auth/spreadsheets.readonly"]
 
 # 원본 시트 컬럼 위치 (1-based)
 DATE_COL = 2        # B열: 날짜
-DATA_START_COL = 32  # AF열: 데이터 시작
-DATA_END_COL = 51    # AY열: 데이터 끝
+DATA_START_COL = 34  # AH열: 데이터 시작 (기존 AF열 + 2)
+DATA_END_COL = 53    # BA열: 데이터 끝 (기존 AY열 + 2)
 
 DATE_PATTERN = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 
@@ -73,8 +73,8 @@ def fetch_from_source(gc, target_date: str) -> list | None:
     if matched_row is None:
         return None
 
-    # AF~AY열 데이터 가져오기 (AF=32, AY=51)
-    range_str = f"AF{matched_row}:AY{matched_row}"
+    # AH~BA열 데이터 가져오기 (AH=34, BA=53)
+    range_str = f"AH{matched_row}:BA{matched_row}"
     row_data = ws.get(range_str)
 
     if not row_data or not row_data[0]:
