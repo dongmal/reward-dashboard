@@ -104,6 +104,50 @@ def check_date_exists(client, target_date: str) -> bool:
     return len(response.data) > 0
 
 
+def parse_date_range(args: list[str]) -> tuple[list[str], bool]:
+    """인자를 파싱하여 (날짜 리스트, force 여부)를 반환한다.
+
+    지원 형식:
+      sync_cashplay.py                          → 전일자 1건
+      sync_cashplay.py 2026-03-15               → 단일 날짜
+      sync_cashplay.py 2026-03-13 2026-03-17    → 시작~끝 범위
+      sync_cashplay.py --force ...              → 기존 데이터 덮어쓰기
+    """
+    force = "--force" in args
+    dates = [a for a in args if a != "--force"]
+
+    if len(dates) == 0:
+        today = datetime.now(KST)
+        return [(today - timedelta(days=i)).strftime("%Y-%m-%d") for i in range(7, 0, -1)], True
+    elif len(dates) == 1:
+        return [dates[0]], force
+    else:
+        start = datetime.strptime(dates[0], "%Y-%m-%d")
+        end = datetime.strptime(dates[1], "%Y-%m-%d")
+        day_count = (end - start).days + 1
+        return [(start + timedelta(days=i)).strftime("%Y-%m-%d") for i in range(day_count)], force
+
+
+def sync_one_date(gc, client, target_date: str, force: bool) -> bool:
+    """단일 날짜를 동기화한다. 성공 시 True 반환."""
+    if not force and check_date_exists(client, target_date):
+        print(f"[sync] {target_date} 데이터가 이미 존재합니다. 건너뜁니다. (--force 로 덮어쓰기 가능)")
+        return False
+
+    data = fetch_from_source(gc, target_date)
+    if data is None:
+        print(f"[sync] {target_date} 데이터가 원본 시트에 없습니다.")
+        return False
+
+    row = {"date": target_date}
+    for i, col_name in enumerate(CASHPLAY_COLUMNS):
+        row[col_name] = data[i] if i < len(data) else 0
+
+    client.table(TABLE_NAME).upsert(row, on_conflict="date").execute()
+    print(f"[sync] {target_date} → Supabase 적재 완료")
+    return True
+
+
 def main():
     if not SOURCE_SPREADSHEET_ID:
         print("[ERROR] SOURCE_SPREADSHEET_ID 환경변수가 비어있습니다.")
@@ -112,39 +156,18 @@ def main():
     print(f"[sync] 캐시플레이 DB 동기화 시작")
     print(f"[sync] SOURCE_ID: {SOURCE_SPREADSHEET_ID[:4]}...{SOURCE_SPREADSHEET_ID[-4:]}")
 
-    # 대상 날짜: 전일자 (또는 인자로 지정)
-    if len(sys.argv) > 1:
-        target_date = sys.argv[1]
-    else:
-        yesterday = datetime.now(KST) - timedelta(days=1)
-        target_date = yesterday.strftime("%Y-%m-%d")
-
-    print(f"[sync] 대상 날짜: {target_date}")
+    target_dates, force = parse_date_range(sys.argv[1:])
+    print(f"[sync] 대상 날짜: {', '.join(target_dates)} (force={force})")
 
     client = get_supabase_client()
-
-    # 1. 중복 체크
-    if check_date_exists(client, target_date):
-        print(f"[sync] {target_date} 데이터가 이미 존재합니다. 건너뜁니다.")
-        return
-
-    # 2. 원본 시트에서 데이터 가져오기
     gc = get_gspread_client()
-    data = fetch_from_source(gc, target_date)
 
-    if data is None:
-        print(f"[sync] {target_date} 데이터가 원본 시트에 없습니다.")
-        return
+    success_count = 0
+    for d in target_dates:
+        if sync_one_date(gc, client, d, force):
+            success_count += 1
 
-    print(f"[sync] 원본 시트에서 {len(data)}개 컬럼 조회 완료")
-
-    # 3. dict로 변환 후 Supabase에 upsert
-    row = {"date": target_date}
-    for i, col_name in enumerate(CASHPLAY_COLUMNS):
-        row[col_name] = data[i] if i < len(data) else 0
-
-    client.table(TABLE_NAME).upsert(row, on_conflict="date").execute()
-    print(f"[sync] Supabase {TABLE_NAME}에 1행 적재 완료")
+    print(f"[sync] 완료: {success_count}/{len(target_dates)}건 적재")
 
 
 if __name__ == "__main__":

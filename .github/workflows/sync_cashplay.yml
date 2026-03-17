@@ -2,13 +2,23 @@ name: Sync CashPlay Data
 
 on:
   schedule:
-    - cron: '0 3 * * *'
+    - cron: '0 3 * * *'   # KST 12:00 (1차)
+    - cron: '0 9 * * *'   # KST 18:00 (2차 재시도)
   workflow_dispatch:
     inputs:
       target_date:
-        description: '적재할 날짜 (YYYY-MM-DD). 비워두면 전일자'
+        description: '적재할 날짜 (YYYY-MM-DD). 범위는 시작일만 입력'
         required: false
         type: string
+      end_date:
+        description: '범위 끝 날짜 (YYYY-MM-DD). 비워두면 단일 날짜'
+        required: false
+        type: string
+      force:
+        description: '기존 데이터 덮어쓰기'
+        required: false
+        type: boolean
+        default: false
 
 jobs:
   sync:
@@ -39,8 +49,14 @@ jobs:
           SOURCE_SPREADSHEET_ID: ${{ secrets.SOURCE_SPREADSHEET_ID }}
           GCP_SERVICE_ACCOUNT: ${{ secrets.GCP_SERVICE_ACCOUNT }}
         run: |
-          if [ -n "${{ github.event.inputs.target_date }}" ]; then
-            python sync_cashplay.py "${{ github.event.inputs.target_date }}"
-          else
-            python sync_cashplay.py
+          ARGS=""
+          if [ "${{ github.event.inputs.force }}" = "true" ]; then
+            ARGS="--force"
           fi
+          if [ -n "${{ github.event.inputs.target_date }}" ]; then
+            ARGS="$ARGS ${{ github.event.inputs.target_date }}"
+            if [ -n "${{ github.event.inputs.end_date }}" ]; then
+              ARGS="$ARGS ${{ github.event.inputs.end_date }}"
+            fi
+          fi
+          python sync_cashplay.py $ARGS
