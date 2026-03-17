@@ -2,8 +2,9 @@ name: Sync CashPlay Data
 
 on:
   schedule:
-    - cron: '0 3 * * *'   # KST 12:00 (1차)
-    - cron: '0 9 * * *'   # KST 18:00 (2차 재시도)
+    - cron: '0 0 * * *'   # KST 09:00 (1차)
+    - cron: '0 3 * * *'   # KST 12:00 (2차)
+    - cron: '0 9 * * *'   # KST 18:00 (3차)
   workflow_dispatch:
     inputs:
       target_date:
