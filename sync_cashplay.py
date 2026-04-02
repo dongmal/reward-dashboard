@@ -26,12 +26,18 @@ SCOPES = ["https://www.googleapis.com/auth/spreadsheets.readonly"]
 
 # 원본 시트 컬럼 위치 (1-based)
 DATE_COL = 2        # B열: 날짜
-DATA_START_COL = 34  # AH열: 데이터 시작 (기존 AF열 + 2)
-DATA_END_COL = 53    # BA열: 데이터 끝 (기존 AY열 + 2)
+DATA_START_COL = 34  # AH열: 데이터 시작
+DATA_END_COL = 58    # BF열: 데이터 끝
 
 DATE_PATTERN = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 
-# Supabase 컬럼 순서 (원본 시트 AF~AY 순서와 일치)
+# reward_total(AJ) 다음 5열(AK~AO)은 DB에 저장하지 않는 집계열이므로 건너뜀
+# 시트 구조: AH(reward_paid) AI(reward_free) AJ(reward_total)
+#            AK~AO(스킵 5열) AP(game_direct) ... BF(offerwall_total)
+SKIP_AFTER_IDX = 3   # index 3부터 5열 스킵
+SKIP_COUNT = 5
+
+# Supabase 컬럼 순서 (총 20열, 스킵 열 제외)
 CASHPLAY_COLUMNS = [
     "reward_paid", "reward_free", "reward_total",
     "game_direct", "game_dsp", "game_rs", "game_acquisition", "game_total",
@@ -73,14 +79,17 @@ def fetch_from_source(gc, target_date: str) -> list | None:
     if matched_row is None:
         return None
 
-    # AH~BA열 데이터 가져오기 (AH=34, BA=53)
-    range_str = f"AH{matched_row}:BA{matched_row}"
+    # AH~BF열 데이터 가져오기 (AH=34, BF=58, 총 25열)
+    range_str = f"AH{matched_row}:BF{matched_row}"
     row_data = ws.get(range_str)
 
     if not row_data or not row_data[0]:
         return None
 
     values = row_data[0]
+
+    # reward_total 이후 5열(AK~AO)은 DB 저장 대상이 아니므로 제거
+    values = values[:SKIP_AFTER_IDX] + values[SKIP_AFTER_IDX + SKIP_COUNT:]
 
     # 숫자 변환: 빈 문자열이나 '-'는 0으로
     formatted = []
